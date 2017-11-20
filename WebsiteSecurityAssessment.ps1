@@ -1,23 +1,24 @@
 ###############################################################################
 # This script will assess several security aspects of websites. It will use
-# the SSLLabs and SecurityHeaders.io API's to automatically retrieve the
-# grading for a list of websites.
+# the SSLLabs, SecurityHeaders.io and Mozilla SSL Observatory API's to
+# automatically retrieve the grading for a list of websites.
 #
 # Written by Eelco Huininga 2017
 ###############################################################################
 
 # Global variables
-$SSLLabsAPIUrl         = "https://api.ssllabs.com/api/v2/analyze"
-$SecurityHeadersAPIUrl = "https://securityheaders.io/"
-$RIPEWhoisAPIUrl       = "https://stat.ripe.net/data/whois/data.json"
-$RIPEPrefixAPIUrl      = "https://stat.ripe.net/data/prefix-overview/data.json"
-$RIPEDNSAPIUrl         = "https://stat.ripe.net/data/dns-chain/data.json"
-$WhoIsUrl              = "http://www.webservicex.net/whois.asmx/GetWhoIS"
-$ProxyUrl              = ""
-$InputFile             = "Hosts.txt"
-$ResultsFile           = "SSLLabs-" + (Get-Date -UFormat %Y%m%d) + ".csv"
-$altNamesFile          = "SSLLabs.altNames.txt"
-$Delimiter             = "`t"
+$SSLLabsAPIUrl            = "https://api.ssllabs.com/api/v2/analyze"
+$SecurityHeadersAPIUrl    = "https://securityheaders.io/"
+$MozillaObservatoryAPIUrl = "https://http-observatory.security.mozilla.org/api/v1/analyze"
+$RIPEWhoisAPIUrl          = "https://stat.ripe.net/data/whois/data.json"
+$RIPEPrefixAPIUrl         = "https://stat.ripe.net/data/prefix-overview/data.json"
+$RIPEDNSAPIUrl            = "https://stat.ripe.net/data/dns-chain/data.json"
+$WhoIsUrl                 = "http://www.webservicex.net/whois.asmx/GetWhoIS"
+$ProxyUrl                 = "http://nuvnlsoph01.intern.ubnet.nl:8080"
+$InputFile                = "Hosts.txt"
+$ResultsFile              = "SSLLabs-" + (Get-Date -UFormat %Y%m%d) + ".csv"
+$altNamesFile             = "SSLLabs.altNames.txt"
+$Delimiter                = "`t"
 
 
 
@@ -61,6 +62,8 @@ function getPrefix($ipAddress) {
 ###############################################################################
 
 function securityheaders($site) {
+    Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $SSLLabsHost + " - Getting securityheaders.io grading...                                  `r")
+
     $Result = Invoke-WebRequest `
         -Proxy $ProxyUrl `
         -ProxyUseDefaultCredentials `
@@ -68,6 +71,37 @@ function securityheaders($site) {
         -ErrorAction Ignore `
         -Uri ($SecurityHeadersAPIUrl + '?q=' + $site + '&hide=on')
     return ($Result.Headers.'X-Grade')
+}
+
+###############################################################################
+# Get the Mozilla HTTP Observatory rating
+# https://github.com/mozilla/http-observatory/blob/master/httpobs/docs/api.md
+###############################################################################
+
+function mozillaObservatory($site) {
+    Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $SSLLabsHost + " - Getting Mozilla HTTP Observatory grading...                            `r")
+    Do {
+        $Result = Invoke-WebRequest `
+            -Proxy $ProxyUrl `
+            -ProxyUseDefaultCredentials `
+            -MaximumRedirection 0 `
+            -ErrorAction Ignore `
+            -Method POST `
+            -Uri ($MozillaObservatoryAPIUrl + '?host=' + $site + '&hidden=on')
+
+        $Result = ConvertFrom-Json -InputObject $Result.Content
+
+        If ($Result.state -eq "FAILED") {
+            return ($Result.error)
+        } else {
+            If ($Result.state -ne "FINISHED") {
+                Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $SSLLabsHost + " - Getting Mozilla HTTP Observatory grading (pausing for 5 seconds)...    `r")
+                Start-Sleep -s 5
+            }
+        }
+    } While (($Result.state -ne "FINISHED") -and ($Result.state -ne "FAILED"))
+
+    return ($Result.grade)
 }
 
 ###############################################################################
@@ -97,7 +131,8 @@ $Hosts = Get-Content ($InputFile)
 '"Hostname"' + $Delimiter + `
 '"Rating"' + $Delimiter + `
 '"Rating if trust ignored"' + $Delimiter + `
-'"securityheaders.io Grade"' + $Delimiter + `
+'"securityheaders.io grade"' + $Delimiter + `
+'"Mozilla SSL Observatory grade"' + $Delimiter + `
 '"Has warnings"' + $Delimiter + `
 '"SNI"' + $Delimiter + `
 '"Server name"' + $Delimiter + `
@@ -111,11 +146,12 @@ $i = 0
 foreach ($SSLLabsHost in $Hosts) {
     $ScanReady = $false
     Write-Progress `
-        -Activity ìGetting SSLLabs resultsî `
-        -status ìHost: $SSLLabsHostî `
+        -Activity ‚ÄúGetting SSLLabs results‚Äù `
+        -status ‚ÄúHost: $SSLLabsHost‚Äù `
         -percentComplete  ($i++ / $Hosts.count*100)
 
     Do {
+        $ScreenWidth = (get-host).UI.RawUI.WindowSize.Width
         $SSLResult = Invoke-RestMethod `
             -Proxy $ProxyUrl `
             -ProxyUseDefaultCredentials `
@@ -140,11 +176,18 @@ foreach ($SSLLabsHost in $Hosts) {
                 Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $SSLLabsHost + " - WHOIS lookup                                                                   `r")
                 $whoisResult = whois($SSLLabsHost)
 
+                # Get grading from securityheaders.io
+                $SecurityHeadersGrade = securityheaders('https%3A%2F%2F' + $SSLLabsHost)
+
+                # Get grading from Mozilla HTTP Observatory
+                $MozillaObservatoryResult = mozillaObservatory($SSLLabsHost)
+
                 # Write results to output file
                 '"' + $SSLLabsHost + '"' + $Delimiter + `
                 '"' + $SSLResult.statusMessage + '"' + $Delimiter + `
                 '"N/A"' + $Delimiter + `
                 '"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+                '"' + $MozillaObservatoryResult.grade + '"' + $Delimiter + `
                 '"N/A"' + $Delimiter + `
                 '"N/A"' + $Delimiter + `
                 '"N/A"' + $Delimiter + `
@@ -167,9 +210,11 @@ foreach ($SSLLabsHost in $Hosts) {
                 $whoisResult = whois($SSLLabsHost)
 
                 # Get grading from securityheaders.io
-                Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $SSLLabsHost + " - Getting securityheaders.io grading...                                  `r")
                 $SecurityHeadersGrade = securityheaders('https%3A%2F%2F' + $SSLLabsHost)
 
+                # Get grading from Mozilla HTTP Observatory
+                $MozillaObservatoryResult = mozillaObservatory($SSLLabsHost)
+                
                 # Iterate through all the endpoints
                 foreach ($endpoints in $SSLResult.endpoints) {
                     # Get RIPE ASN prefix for the IP address (hosting provider info)
@@ -181,6 +226,7 @@ foreach ($SSLLabsHost in $Hosts) {
                         '"' + $endpoints.grade + '"' + $Delimiter + `
                         '"' + $endpoints.gradeTrustIgnored + '"' + $Delimiter + `
                         '"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+                        '"' + $MozillaObservatoryResult + '"' + $Delimiter + `
                         '"' + $endpoints.hasWarnings + '"' + $Delimiter + `
                         '"' + $endpoints.sniRequired + '"' + $Delimiter + `
                         '"' + $endpoints.serverName + '"' + $Delimiter + `
@@ -199,6 +245,7 @@ foreach ($SSLLabsHost in $Hosts) {
                         '"' + $endpoints.statusMessage + '"' + $Delimiter + `
                         '"N/A"' + $Delimiter + `
                         '"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+                        '"' + $MozillaObservatoryResult + '"' + $Delimiter + `
                         '"' + $endpoints.hasWarnings + '"' + $Delimiter + `
                         '"' + $endpoints.sniRequired + '"' + $Delimiter + `
                         '"' + $endpoints.serverName + '"' + $Delimiter + `
