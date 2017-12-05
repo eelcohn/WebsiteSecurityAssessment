@@ -389,7 +389,6 @@ foreach ($SSLLabsHost in $Hosts) {
 
             # Status = SSL Labs scan in progress, please wait...
             "IN_PROGRESS" {
-                Write-Host("`n`n"+ ($SSLResult | Out-String))
                 # Ease down requests on the SSLLabs API
                 $SecondsToWait = $SSLResult.endpoints.eta
 
