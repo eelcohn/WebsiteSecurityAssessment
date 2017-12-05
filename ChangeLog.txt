@@ -1,0 +1,7 @@
+v20171201:
+* Automatic detection of proxy server
+* Output is now in a more human readable format. Suggestions for improvement for encryption, headers and cookies are now in seperate columns.
+* WHOIS information is now correct for all websites
+* If a certificate contains a host name which is not already present in the Hosts.txt file, it will register it in the SSLLabs.altNames file.
+* Added try {} catch {} to some Invoke-WebRequest functions for better error handling
+* Correctly handle all responses from the Mozilla HTTP Observatory's API
