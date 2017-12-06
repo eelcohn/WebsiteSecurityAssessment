@@ -236,8 +236,8 @@ $i = 0
 foreach ($SSLLabsHost in $Hosts) {
     $ScanReady = $false
     Write-Progress `
-        -Activity “Getting SSLLabs results” `
-        -status “Host: $SSLLabsHost” `
+        -Activity "Getting SSLLabs results" `
+        -status "Host: $SSLLabsHost" `
         -percentComplete  ($i++ / $Hosts.count*100)
 
     Do {
