@@ -3,7 +3,7 @@
 # the SSLLabs, SecurityHeaders.io and Mozilla SSL Observatory API's to
 # automatically retrieve the grading for a list of websites.
 #
-# Written by Eelco Huininga 2017
+# Written by Eelco Huininga 2017-2018
 ###############################################################################
 
 # Global variables
@@ -15,14 +15,34 @@ $RIPEPrefixAPIUrl         = "https://stat.ripe.net/data/prefix-overview/data.jso
 $RIPEDNSAPIUrl            = "https://stat.ripe.net/data/dns-chain/data.json"
 $WhoIsUrl                 = "http://www.webservicex.net/whois.asmx/GetWhoIS"
 $InputFile                = "Hosts.txt"
-$ResultsFile              = "SSLLabs-" + (Get-Date -UFormat %Y%m%d) + ".csv"
-$altNamesFile             = "SSLLabs.altNames-" + (Get-Date -UFormat %Y%m%d) + ".txt"
+$ResultsFile              = "WSAresults-" + (Get-Date -UFormat %Y%m%d) + ".csv"
+$altNamesFile             = "WSAdebug.altNames-" + (Get-Date -UFormat %Y%m%d) + ".txt"
+$HeadersDebugFile         = "WSAdebug.Headers-" + (Get-Date -UFormat %Y%m%d) + ".txt"
+$CookiesDebugFile         = "WSAdebug.Cookies-" + (Get-Date -UFormat %Y%m%d) + ".txt"
 $Delimiter                = "`t"
 
 
 
 ###############################################################################
 # Function definitions
+###############################################################################
+# Show help and usage
+###############################################################################
+
+function print_help() {
+	Write-Host ("This script will assess several security aspects of websites. It will use the SSLLabs, SecurityHeaders.io and Mozilla SSL Observatory API's to automatically retrieve the grading for a list of websites.")
+    Write-Host ("")
+	Write-Host ("Written by Eelco Huininga 2017")
+	Write-Host ("")
+	Write-Host ("Usage:")
+	Write-Host ("    $0 [ options ]")
+	Write-Host ("")
+	Write-Host ("Options:")
+	Write-Host ("    -h,        --help                                 Print this help message")
+	Write-Host ("    -d url,    --domain url                           Specify target domain")
+	Write-Host ("    -i file,   --input file                           Specify file with target domains (default: Hosts.txt)")
+}
+
 ###############################################################################
 # Get WHOIS record for domain name
 ###############################################################################
@@ -175,6 +195,7 @@ function analyzeCookies($site) {
     $ReturnString = ''
 
     foreach ($Cookie in $mysession.Cookies.GetCookies("https://" + $site)) {
+        $Cookie | Out-File -Append $CookiesDebugFile
         if (($Cookie.Secure -ne "True") -Or ($Cookie.HttpOnly -ne "True")) {
             $ReturnString = $ReturnString + "Set the "
             # Cookie should have the Secure attribute set
@@ -197,7 +218,99 @@ function analyzeCookies($site) {
     }
 
     if ($ReturnString) {
-        return ($ReturnString)
+        return ($ReturnString.Remove($Result.Length))
+    } else {
+        return ("None!")
+    }
+}
+
+###############################################################################
+# Analyze the headers for a site
+###############################################################################
+
+function analyzeHeaders($site) {
+    Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Analyzing headers...                                                  `r")
+
+    try {
+        $Result = Invoke-WebRequest `
+            -ErrorAction Ignore `
+            -Uri $site `
+            -SessionVariable mysession
+    } catch [System.Net.Webexception] {
+        return ("N/A")
+    }
+
+    $Result.Headers | Out-File -Append $HeadersDebugFile
+
+    $ReturnString = ''
+
+    # Check if 'Server' header is empty
+    if ($Result.Headers.'Server' -ne $null) {
+        $ReturnString += "Server header should be empty instead of '" + $Result.Headers.'Server' + "'`n"
+    }
+
+    # Check if 'X-Served-Via' header is empty
+    if ($Result.Headers.'X-Served-Via' -ne $null) {
+        $ReturnString += "X-Served-Via should be empty instead of '" + $Result.Headers.'X-Served-Via' + "'`n"
+    }
+
+    # Check if 'X-Served-By' header is empty
+    if ($Result.Headers.'X-Served-By' -ne $null) {
+        $ReturnString += "X-Served-By should be empty instead of '" + $Result.Headers.'X-Served-By' + "'`n"
+    }
+
+    # Check if 'X-Powered-By' header is empty
+    if ($Result.Headers.'X-Powered-By' -ne $null) {
+        $ReturnString += "X-Powered-By should be empty instead of '" + $Result.Headers.'X-Powered-By' + "'`n"
+    }
+
+    # Check if 'X-AspNet-Version' header is empty
+    if ($Result.Headers.'X-AspNet-Version' -ne $null) {
+        $ReturnString += "X-AspNet-Version should be empty instead of '" + $Result.Headers.'X-AspNet-Version' + "'`n"
+    }
+
+    # Check if 'X-AspNetMvc-Version' header is empty
+    if ($Result.Headers.'X-AspNetMvc-Version' -ne $null) {
+        $ReturnString += "X-AspNetMvc-Version should be empty instead of '" + $Result.Headers.'X-AspNetMvc-Version' + "'`n"
+    }
+
+    # Check if 'X-MS-Server-Fqdn' header is empty
+    if ($Result.Headers.'X-MS-Server-Fqdn' -ne $null) {
+        $ReturnString += "X-MS-Server-Fqdn should be empty instead of '" + $Result.Headers.'X-MS-Server-Fqdn' + "'`n"
+    }
+
+    # Check if 'Content-Security-Policy' header is empty
+    if ($Result.Headers.'Content-Security-Policy' -eq "") {
+        $ReturnString += "Content-Security-Policy should be set`n"
+    }
+
+    # Check if 'X-Frame-Options' header is set correctly
+    if ($Result.Headers.'X-Frame-Options' -ne "SAMEORIGIN") {
+        $ReturnString += "X-Frame-Options should be set to 'SAMEORIGIN'`n"
+    }
+
+    # Check if 'X-XSS-Protection' header is set correctly
+    if ($Result.Headers.'X-XSS-Protection' -ne "1; mode=block") {
+        $ReturnString += "X-XSS-Protection should be set to '1; mode=block'`n"
+    }
+
+    # Check if 'X-Content-Type-Options' header is set correctly
+    if ($Result.Headers.'X-Content-Type-Options' -ne "nosniff") {
+        $ReturnString += "X-Content-Type-Options should be set to 'nosniff'`n"
+    }
+
+    # Check if 'Referrer-Policy' header is set
+    if ($Result.Headers.'Referrer-Policy' -eq $null) {
+        $ReturnString += "Referrer-Policy should be set`n"
+    }
+
+    # Check if 'Public-Key-Pins' header is set
+    if ($Result.Headers.'Public-Key-Pins' -eq $null) {
+        $ReturnString += "Public-Key-Pins should be set`n"
+    }
+
+    if ($ReturnString) {
+        return ($ReturnString.Remove($Result.Length))
     } else {
         return ("None!")
     }
@@ -236,8 +349,8 @@ $i = 0
 foreach ($SSLLabsHost in $Hosts) {
     $ScanReady = $false
     Write-Progress `
-        -Activity "Getting SSLLabs results" `
-        -status "Host: $SSLLabsHost" `
+        -Activity “Getting SSLLabs results” `
+        -status “Host: $SSLLabsHost” `
         -percentComplete  ($i++ / $Hosts.count*100)
 
     Do {
@@ -253,6 +366,25 @@ foreach ($SSLLabsHost in $Hosts) {
 
                 # Wait 5 seconds before next try
                 Start-Sleep -s 5
+                break
+            }
+
+            # Status = SSL Labs scan in progress, please wait...
+            "IN_PROGRESS" {
+                # Ease down requests on the SSLLabs API
+                $SecondsToWait = $SSLResult.endpoints.eta
+
+                # Retry in 15 seconds if ETA is unknown
+                if ($SecondsToWait -eq -1) {
+                    $SecondsToWait = 15
+                }
+
+                # Retry in 60 seconds if ETA is longer than 60 seconds
+                if ($SecondsToWait -gt 60) {
+                    $SecondsToWait = 60
+                }
+                Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $SSLLabsHost + " - SSLLabs: scan in progress, pausing for " + $SecondsToWait + " seconds...            `r")
+                Start-Sleep -s $SecondsToWait
                 break
             }
 
@@ -317,6 +449,9 @@ foreach ($SSLLabsHost in $Hosts) {
 
                 # Analyze the cookies
                 $CookieSuggestions = analyzeCookies($SSLLabsHost)
+
+                # Analyze the headers
+                $HeaderSuggestions = analyzeHeaders($SSLLabsHost)
                 
                 # Iterate through all the endpoints
                 foreach ($endpoints in $SSLResult.endpoints) {
@@ -335,11 +470,6 @@ foreach ($SSLLabsHost in $Hosts) {
                     if ($endpoints.hasWarnings -eq "true") {
                         $Suggestions = $Suggestions + "Fix all warnings from the SSL Labs test`n"
                     }
-
-                    # Check if HPKP is available
-#                    if ($endpoints.details.hpkpPolicy.status -ne "present") {
-#                        $Suggestions = $Suggestions + "Implement HPKP (HTTP Public Key Pinning)`n"
-#                    }
 
                     # Check if the server signature is empty
                     if ($endpoints.details.serverSignature) {
@@ -360,7 +490,7 @@ foreach ($SSLLabsHost in $Hosts) {
                         '"' + $SSLLabsGrade + '"' + $Delimiter + `
                         '"' + $SecurityHeadersGrade + '"' + $Delimiter + `
                         '"' + $MozillaObservatoryResult + '"' + $Delimiter + `
-                        '"' + $Suggestions + '"' + $Delimiter + `
+                        '"' + $Suggestions + $HeaderSuggestions + '"' + $Delimiter + `
                         '"' + $CookieSuggestions + '"' | Out-File -Append $ResultsFile
                     } else {
                         '"' + $SSLLabsHost + '"' + $Delimiter + `
@@ -384,25 +514,6 @@ foreach ($SSLLabsHost in $Hosts) {
                     }
                 }
                 Write-Host ("[" + $i + "/" + $Hosts.count + "] " + $SSLLabsHost + " - Done                                                                   ")
-                break
-            }
-
-            # Status = SSL Labs scan in progress, please wait...
-            "IN_PROGRESS" {
-                # Ease down requests on the SSLLabs API
-                $SecondsToWait = $SSLResult.endpoints.eta
-
-                # Retry in 15 seconds if ETA is unknown
-                if ($SecondsToWait -eq -1) {
-                    $SecondsToWait = 15
-                }
-
-                # Retry in 60 seconds if ETA is longer than 150 seconds
-                if ($SecondsToWait -gt 60) {
-                    $SecondsToWait = 60
-                }
-                Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $SSLLabsHost + " - SSLLabs: scan in progress, pausing for " + $SecondsToWait + " seconds...            `r")
-                Start-Sleep -s $SecondsToWait
                 break
             }
 
