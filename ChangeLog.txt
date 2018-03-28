@@ -5,3 +5,9 @@ v20171201:
 * If a certificate contains a host name which is not already present in the Hosts.txt file, it will register it in the SSLLabs.altNames file.
 * Added try {} catch {} to some Invoke-WebRequest functions for better error handling
 * Correctly handle all responses from the Mozilla HTTP Observatory's API
+
+v20180328:
+* Added auto-analyzing of HTTP-headers
+* Added auto-analyzing of cookies
+* Added output of debug info for HTTP-headers
+* Added output of debug info for cookies
