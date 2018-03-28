@@ -31,8 +31,8 @@ $Delimiter                = "`t"
 
 function print_help() {
 	Write-Host ("This script will assess several security aspects of websites. It will use the SSLLabs, SecurityHeaders.io and Mozilla SSL Observatory API's to automatically retrieve the grading for a list of websites.")
-    Write-Host ("")
-	Write-Host ("Written by Eelco Huininga 2017")
+	Write-Host ("")
+	Write-Host ("Written by Eelco Huininga 2017-2018")
 	Write-Host ("")
 	Write-Host ("Usage:")
 	Write-Host ("    $0 [ options ]")
