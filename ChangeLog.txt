@@ -12,3 +12,6 @@ v20180328:
 * Added auto-analyzing of cookies
 * Added output of debug info for HTTP-headers
 * Added output of debug info for cookies
+
+v20180329:
+* Added try () catch () for better error handling
