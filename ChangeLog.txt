@@ -1,3 +1,8 @@
+v20180821:
+* Updated auto-analyzing HTTP headers
+* Updated output format
+* Updated error handling
+
 v20171201:
 * Automatic detection of proxy server
 * Output is now in a more human readable format. Suggestions for improvement for encryption, headers and cookies are now in seperate columns.
