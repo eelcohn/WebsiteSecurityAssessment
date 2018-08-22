@@ -1,6 +1,8 @@
 v20180822:
 * Added modular check for information disclosure in HTTP headers
 * Added checks for X-Mod-Pagespeed, X-KoobooCMS-Version and X-SharePointHealthScore HTTP headers (information disclosure)
+* Added support for HTTP site analyzing
+* Detection of generator software in <meta generator> tag
 
 v20180821:
 * Updated auto-analyzing HTTP headers
