@@ -1,3 +1,6 @@
+v20180822:
+* Added checks for X-Mod-Pagespeed, X-KoobooCMS-Version and X-SharePointHealthScore HTTP headers (information disclosure)
+
 v20180821:
 * Updated auto-analyzing HTTP headers
 * Updated output format
