@@ -17,6 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
+$WSAVersion					= "v20180822"
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v2/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
 $MozillaObservatoryAPIUrl	= "https://http-observatory.security.mozilla.org/api/v1/analyze"
@@ -30,6 +31,18 @@ $WhoisCache.Columns.Add("Whois", [string]) | Out-Null
 $RipeCache					= New-Object System.Data.DataTable
 $RipeCache.Columns.Add("IPAddress", [string]) | Out-Null
 $RipeCache.Columns.Add("ASNHolder", [string]) | Out-Null
+$BadHTTPHeaders = @("Server",
+					"X-App-Server",
+					"X-AspNet-Version",
+					"X-AspNetMvc-Version",
+					"X-KoobooCMS-Version",
+					"X-MS-Server-Fqdn",
+					"X-Mod-Pagespeed",
+					"X-Powered-By",
+					"X-Served-By",
+					"X-Served-Via",
+					"X-SharePointHealthScore")
+
 
 
 ###############################################################################
@@ -209,8 +222,7 @@ function mozillaObservatory($site) {
 			$Result = ConvertFrom-Json -InputObject $Result.Content
 		}
 		$j++
-#	} While (($Result.state -ne "FINISHED") -and ($Result.state -ne "ABORTED") -and ($j -le $MaxRequests))
-	} While ((($Result.state -eq "PENDING") -or ($Result.state -eq "PENDING")) -and ($j -le $MaxRequests))
+	} While ((($Result.state -eq "PENDING") -or ($Result.state -eq "RUNNING")) -and ($j -le $MaxRequests))
 
 	# Return the resulting grade if the scan finished successfully
 	if ($Result.state -eq "FINISHED") {
@@ -251,6 +263,7 @@ function analyzeWebsite($site) {
 		$Result = Invoke-WebRequest `
 			-MaximumRedirection 0 `
 			-ErrorAction Ignore `
+			-Headers @{"X-Client"="WebsiteSecurityAssessment "+$WSAversion} `
 			-Uri $site `
 			-TimeoutSec $TimeOut `
 			-SessionVariable mysession
@@ -301,64 +314,16 @@ function analyzeWebsite($site) {
 		}
 	}
 
+	# Check if any HTTP headers disclose unnecessary information
+	foreach ($BadHeader in $BadHTTPHeaders) {
+		if ($Result.Headers.$BadHeader -ne $null) {
+			$ReturnString += "HTTP header $BadHeader should be empty instead of '" + $Result.Headers.$BadHeader + "'`n"
+		}
+	}
+
 	# Check if 'Location' header redirects to a secure https:// site
 	if (($Result.Headers.'Location' -ne $null) -and (!($Result.Headers.'Location' -clike "https://*"))) {
 		$ReturnString += "Insecure redirection found: '" + $Result.Headers.'Location' + "'`n"
-	}
-
-	# Check if 'Server' header is empty
-	if ($Result.Headers.'Server' -ne $null) {
-		$ReturnString += "Server header should be empty instead of '" + $Result.Headers.'Server' + "'`n"
-	}
-
-	# Check if 'X-Served-Via' header is empty
-	if ($Result.Headers.'X-Served-Via' -ne $null) {
-		$ReturnString += "X-Served-Via should be empty instead of '" + $Result.Headers.'X-Served-Via' + "'`n"
-	}
-
-	# Check if 'X-Served-By' header is empty
-	if ($Result.Headers.'X-Served-By' -ne $null) {
-		$ReturnString += "X-Served-By should be empty instead of '" + $Result.Headers.'X-Served-By' + "'`n"
-	}
-
-	# Check if 'X-Powered-By' header is empty
-	if ($Result.Headers.'X-Powered-By' -ne $null) {
-		$ReturnString += "X-Powered-By should be empty instead of '" + $Result.Headers.'X-Powered-By' + "'`n"
-	}
-
-	# Check if 'X-App-Server' header is empty
-	if ($Result.Headers.'X-App-Server' -ne $null) {
-		$ReturnString += "X-App-Server should be empty instead of '" + $Result.Headers.'X-App-Server' + "'`n"
-	}
-
-	# Check if 'X-AspNet-Version' header is empty
-	if ($Result.Headers.'X-AspNet-Version' -ne $null) {
-		$ReturnString += "X-AspNet-Version should be empty instead of '" + $Result.Headers.'X-AspNet-Version' + "'`n"
-	}
-
-	# Check if 'X-AspNetMvc-Version' header is empty
-	if ($Result.Headers.'X-AspNetMvc-Version' -ne $null) {
-		$ReturnString += "X-AspNetMvc-Version should be empty instead of '" + $Result.Headers.'X-AspNetMvc-Version' + "'`n"
-	}
-
-	# Check if 'X-MS-Server-Fqdn' header is empty
-	if ($Result.Headers.'X-MS-Server-Fqdn' -ne $null) {
-		$ReturnString += "X-MS-Server-Fqdn should be empty instead of '" + $Result.Headers.'X-MS-Server-Fqdn' + "'`n"
-	}
-
-	# Check if 'X-Mod-Pagespeed' header is empty
-	if ($Result.Headers.'X-Mod-Pagespeed' -ne $null) {
-		$ReturnString += "X-Mod-Pagespeed should be empty instead of '" + $Result.Headers.'X-Mod-Pagespeed' + "'`n"
-	}
-
-	# Check if 'X-KoobooCMS-Version' header is empty
-	if ($Result.Headers.'X-KoobooCMS-Version' -ne $null) {
-		$ReturnString += "X-KoobooCMS-Version should be empty instead of '" + $Result.Headers.'X-KoobooCMS-Version' + "'`n"
-	}
-
-	# Check if 'X-SharePointHealthScore' header is empty
-	if ($Result.Headers.'X-SharePointHealthScore' -ne $null) {
-		$ReturnString += "X-SharePointHealthScore should be empty instead of '" + $Result.Headers.'X-SharePointHealthScore' + "'`n"
 	}
 
 	# Check if 'Content-Security-Policy' header is empty
@@ -508,7 +473,7 @@ if ($UseProxy) {
 	(New-Object System.Net.WebClient).Proxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials
 }
 
-# Add TLSv1.1 and TLSv1.2 to the available TLS protocols for Invoke-WebRequest() and Invoke-RestMethod()
+# Add TLSv1.1, TLSv1.2 and TLSv1.3 to the available TLS protocols for Invoke-WebRequest() and Invoke-RestMethod()
 try {
 	if ([Net.ServicePointManager]::SecurityProtocol -clike '*Tls11*') {
 		[Net.ServicePointManager]::SecurityProtocol += [Net.SecurityProtocolType]::Tls11
@@ -732,8 +697,8 @@ foreach ($CurrentHost in $Hosts) {
 					if ($endpoint.statusMessage -eq "Ready") {
 						# Get the certificate's keysize, validation dates and issuer
 						$CertificateKeySize = $endpoint.details.key.strength
-						$CertificateDateBefore = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notBefore / 1000).ToLocalTime()).ToString("yyyy-MM-dd HH:mm")
-						$CertificateDateAfter = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notAfter / 1000).ToLocalTime()).ToString("yyyy-MM-dd HH:mm")
+						$CertificateDateBefore = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notBefore / 1000).ToLocalTime()).ToString("yyyy-MM-dd")
+						$CertificateDateAfter = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notAfter / 1000).ToLocalTime()).ToString("yyyy-MM-dd")
 						$CertificateIssuer = $endpoint.details.cert.issuerLabel
 
 						if ($endpoint.grade -ne $endpoint.gradeTrustIgnored) {
