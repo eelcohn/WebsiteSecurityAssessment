@@ -1,4 +1,5 @@
 v20180822:
+* Added modular check for information disclosure in HTTP headers
 * Added checks for X-Mod-Pagespeed, X-KoobooCMS-Version and X-SharePointHealthScore HTTP headers (information disclosure)
 
 v20180821:
