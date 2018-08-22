@@ -2,6 +2,7 @@ v20180821:
 * Updated auto-analyzing HTTP headers
 * Updated output format
 * Updated error handling
+* Added scanning website for insecure links
 
 v20171201:
 * Automatic detection of proxy server
