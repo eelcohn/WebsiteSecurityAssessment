@@ -210,7 +210,7 @@ function mozillaObservatory($site) {
 		}
 		$j++
 #	} While (($Result.state -ne "FINISHED") -and ($Result.state -ne "ABORTED") -and ($j -le $MaxRequests))
-	} While (($Result.state -eq "PENDING") -and ($j -le $MaxRequests))
+	} While ((($Result.state -eq "PENDING") -or ($Result.state -eq "PENDING")) -and ($j -le $MaxRequests))
 
 	# Return the resulting grade if the scan finished successfully
 	if ($Result.state -eq "FINISHED") {
@@ -709,18 +709,18 @@ foreach ($CurrentHost in $Hosts) {
 						$CertificateType = "-"
 					}
 
-					# Get the keysize, validation dates and issuer for the certificate
-					$CertificateKeySize = $endpoint.details.key.strength
-					$CertificateDateBefore = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notBefore / 1000).ToLocalTime()).ToString("yyyy-MM-dd HH:mm")
-					$CertificateDateAfter = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notAfter / 1000).ToLocalTime()).ToString("yyyy-MM-dd HH:mm")
-					$CertificateIssuer = $endpoint.details.cert.issuerLabel
-
 					# Check if the SSLLabs test returned any warnings
 					if ($endpoint.hasWarnings -eq "true") {
 						$Suggestions = $Suggestions + "Fix all warnings from the SSL Labs test`n"
 					}
 
 					if ($endpoint.statusMessage -eq "Ready") {
+						# Get the certificate's keysize, validation dates and issuer
+						$CertificateKeySize = $endpoint.details.key.strength
+						$CertificateDateBefore = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notBefore / 1000).ToLocalTime()).ToString("yyyy-MM-dd HH:mm")
+						$CertificateDateAfter = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notAfter / 1000).ToLocalTime()).ToString("yyyy-MM-dd HH:mm")
+						$CertificateIssuer = $endpoint.details.cert.issuerLabel
+
 						if ($endpoint.grade -ne $endpoint.gradeTrustIgnored) {
 							$SSLLabsGrade = $endpoint.grade + ' (' + $endpoint.gradeTrustIgnored + ')'
 						} else {
@@ -749,8 +749,8 @@ foreach ($CurrentHost in $Hosts) {
 						'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
 						'"' + $PrefixResult + '"' + $Delimiter + `
 						'"' + $whoisResult + '"' + $Delimiter + `
-						'"' + $CertificateIssuer + '"' + $Delimiter + `
-						'"' + $CertificateDateAfter + '"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
 						'"' + $Suggestions + $WebsiteSuggestions + '"' `
 							| Out-File -Append $ResultsFile
 					}
@@ -779,4 +779,4 @@ foreach ($CurrentHost in $Hosts) {
 	} While ($ScanReady -eq $false)
 }
 Write-Progress "Done" "Done" -completed
-Write-Host("Total time: " + ((Get-Date) - $StartTime).totalseconds + " seconds`n")
+Write-Host("Total time: " + ([timespan]::fromseconds(((Get-Date) - $StartTime).totalseconds).ToString("hh\:mm\:ss")))
