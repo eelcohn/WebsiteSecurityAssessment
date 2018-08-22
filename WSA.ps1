@@ -346,6 +346,21 @@ function analyzeWebsite($site) {
 		$ReturnString += "X-MS-Server-Fqdn should be empty instead of '" + $Result.Headers.'X-MS-Server-Fqdn' + "'`n"
 	}
 
+	# Check if 'X-Mod-Pagespeed' header is empty
+	if ($Result.Headers.'X-Mod-Pagespeed' -ne $null) {
+		$ReturnString += "X-Mod-Pagespeed should be empty instead of '" + $Result.Headers.'X-Mod-Pagespeed' + "'`n"
+	}
+
+	# Check if 'X-KoobooCMS-Version' header is empty
+	if ($Result.Headers.'X-KoobooCMS-Version' -ne $null) {
+		$ReturnString += "X-KoobooCMS-Version should be empty instead of '" + $Result.Headers.'X-KoobooCMS-Version' + "'`n"
+	}
+
+	# Check if 'X-SharePointHealthScore' header is empty
+	if ($Result.Headers.'X-SharePointHealthScore' -ne $null) {
+		$ReturnString += "X-SharePointHealthScore should be empty instead of '" + $Result.Headers.'X-SharePointHealthScore' + "'`n"
+	}
+
 	# Check if 'Content-Security-Policy' header is empty
 	if ($Result.Headers.'Content-Security-Policy' -eq "") {
 		$ReturnString += "Set 'Content-Security-Policy'`n"
