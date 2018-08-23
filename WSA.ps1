@@ -135,6 +135,9 @@ function getPrefix($ipAddress) {
 			return ('ERROR' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
 		}
 
+		[Net.IPAddress]$network, $netmask = ($PrefixResult.data.resource -split "/")
+		[Net.IPAddress]$netmask = [uint32]"0xffffffff" -shl (31 - $netmask)
+
 		if ($PrefixResult.data.asns.holder) {
 			$RipeCache.Rows.Add($ipAddress, $PrefixResult.data.asns.holder) | Out-Null
 			return ($PrefixResult.data.asns.holder)
@@ -254,6 +257,25 @@ function getDNSRecords($site) {
 }
 
 ###############################################################################
+# Get the reverse DNS record for an IP addresslookup
+###############################################################################
+
+function reverseDNSLookup($site) {
+		try {
+			$DnsRecords = Resolve-DnsName `
+				$site `
+				-Type A_AAAA `
+				-DnsOnly
+		} catch [System.Net.Webexception] {
+			if ($_.CategoryInfo.Category -eq "ResourceUnavailable") {
+				$DnsRecords = "No DNS record"
+			} else {
+				Write-Host("Resolve-DnsName returned an error while trying to resolve " + $site + " --> " + $_.CategoryInfo)
+			}
+		}
+}
+
+###############################################################################
 # Analyze the contents of the website
 ###############################################################################
 
@@ -315,7 +337,7 @@ function analyzeWebsite($site) {
 		}
 	}
 
-	# Check if any HTTP headers disclose unnecessary information
+	# Check if any of the HTTP headers disclose unnecessary information
 	foreach ($BadHeader in $BadHTTPHeaders) {
 		if ($Result.Headers.$BadHeader -ne $null) {
 			$ReturnString += "HTTP header $BadHeader should be empty instead of '" + $Result.Headers.$BadHeader + "'`n"
@@ -366,6 +388,7 @@ function analyzeWebsite($site) {
 			if ($item -clike "max-age*") {
 				$HSTSmaxage = $true
 				$item2 = $item.Split("=").Trim()
+				# Qualsys advises a minimun value for max-age of 120 days
 				if ($item2[1] -le 10368000) {
 					$ReturnString = "Set 'Strict-Transport-Security' max-age to at least 10368000`n"
 				}
@@ -402,30 +425,11 @@ function analyzeWebsite($site) {
 	}
 
 	if ($ReturnString -ne "") {
-		return ($ReturnString)
+		return ($ReturnString.TrimEnd("`n"))
 	} else {
 		return ("None!")
 	}
 	return ("Error")
-}
-
-###############################################################################
-# Perform a reverse DNS lookup
-###############################################################################
-
-function reverseDNSLookup($site) {
-		try {
-			$DnsRecords = Resolve-DnsName `
-				$site `
-				-Type A_AAAA `
-				-DnsOnly
-		} catch [System.Net.Webexception] {
-			if ($_.CategoryInfo.Category -eq "ResourceUnavailable") {
-				$DnsRecords = "No DNS record"
-			} else {
-				Write-Host("Resolve-DnsName returned an error while trying to resolve " + $site + " --> " + $_.CategoryInfo)
-			}
-		}
 }
 
 ###############################################################################
@@ -482,21 +486,21 @@ if ($UseProxy) {
 
 # Add TLSv1.1, TLSv1.2 and TLSv1.3 to the available TLS protocols for Invoke-WebRequest() and Invoke-RestMethod()
 try {
-	if ([Net.ServicePointManager]::SecurityProtocol -clike '*Tls11*') {
+	if ([Net.ServicePointManager]::SecurityProtocol -NotLike '*Tls11*') {
 		[Net.ServicePointManager]::SecurityProtocol += [Net.SecurityProtocolType]::Tls11
 	}
 } catch {
 	Write-Host("Notice: TLSv1.1 not available")
 }
 try {
-	if ([Net.ServicePointManager]::SecurityProtocol -clike '*Tls12*') {
+	if ([Net.ServicePointManager]::SecurityProtocol -NotLike '*Tls12*') {
 		[Net.ServicePointManager]::SecurityProtocol += [Net.SecurityProtocolType]::Tls12
 	}
 } catch {
 	Write-Host("Notice: TLSv1.2 not available")
 }
 try {
-	if ([Net.ServicePointManager]::SecurityProtocol -clike '*Tls13*') {
+	if ([Net.ServicePointManager]::SecurityProtocol -NotLike '*Tls13*') {
 		[Net.ServicePointManager]::SecurityProtocol += [Net.SecurityProtocolType]::Tls13
 	}
 } catch {
@@ -532,16 +536,18 @@ $Hosts = Get-Content ($InputFile)
 '"Newly discovered host"' `
 	| Out-File $altNamesFile
 
-# Now get the results for all domains
+# Reset counter which shows the user where we are in the list of domains
 $i = 0
+
+# Get the start time so we can calculate how long the script has run
 $StartTime = (Get-Date)
 
 # To save time, send requests to SSLLabs for scanning the hostnames, but don't retrieve the results yet
 #initiateScans
 
+# Now get the results for all domains
 foreach ($CurrentHost in $Hosts) {
 	$SSLResult = ""
-	$ScanReady = $false
 	Write-Progress `
 		-Activity "Assessing security..." `
 		-status "Current host: $CurrentHost" `
@@ -586,6 +592,10 @@ foreach ($CurrentHost in $Hosts) {
 
 			# Check the hostname via HTTPS
 			"https" {
+				# Reset the 'SSLLabs scan is ready'-flag
+				$ScanReady = $false
+
+				# Create a Do-While loop for retrieving the SSLLabs result
 				Do {
 					Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: Sending request..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 					try {
@@ -611,18 +621,22 @@ foreach ($CurrentHost in $Hosts) {
 
 						# Status = SSL Labs scan in progress, please wait...
 						"IN_PROGRESS" {
+							# Reset number-of-endpoints-done counter so we can show to the user which endpoint is currently being processed
 							$EndpointsDone = 1
 
-							# Find the endpoint with the longest wait time
+							# Default to a 2 second wait time
 							$SecondsToWait = 2
 
 							foreach ($endpoint in $SSLResult.endpoints) {
+								# Find the number of endpoints which have already been processed
 								if ($endpoint.statusMessage -eq "Ready") {
 									$EndpointsDone++
 								}
+								# Find the IP address of the current endpoint being processed
 								if ($endpoint.statusMessage -eq "In progress") {
 										$CurrentEndpoint = $endpoint.ipAddress
 								}
+								# Find the endpoint with the longest wait time
 								if ($SecondsToWait -le $endpoint.eta) {
 									$SecondsToWait = $endpoint.eta
 								}
