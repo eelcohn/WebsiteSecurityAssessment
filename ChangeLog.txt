@@ -1,4 +1,7 @@
-v20180823
+v20180824:
+* Bugfixes
+
+v20180823:
 * Bugfixes / Added extra notes for code readibility
 
 v20180822:
