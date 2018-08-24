@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20180822"
+$WSAVersion					= "v20180824"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v2/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -247,25 +247,31 @@ function mozillaObservatory($site) {
 
 function getDNSRecords($site) {
 	try {
-		$DNSResult = Invoke-RestMethod `
-			-Uri ($RIPEDNSAPIUrl + '?resource=' + $site)
+		$DNSResult = [System.Net.Dns]::GetHostAddress($site)
+#		$DNSResult = Invoke-RestMethod `
+#			-Uri ($RIPEDNSAPIUrl + '?resource=' + $site)
 	} catch [System.Net.Webexception] {
-		return ('ERROR' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
+		if ($_.CategoryInfo.Category -eq "ResourceUnavailable") {
+			$DnsRecords = "No DNS record"
+		} else {
+			return ('ERROR' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
+		}
 	}
 
-	return ($DNSResult)
+	return ($DNSResult.IPAddressToString)
 }
 
 ###############################################################################
 # Get the reverse DNS record for an IP addresslookup
 ###############################################################################
 
-function reverseDNSLookup($site) {
+function reverseDNSLookup($IPAddress) {
 		try {
-			$DnsRecords = Resolve-DnsName `
-				$site `
-				-Type A_AAAA `
-				-DnsOnly
+			$DnsRecords = [System.Net.Dns]::GetHostByAddress($IPAddress)
+#			$DnsRecords = Resolve-DnsName `
+#				$site `
+#				-Type A_AAAA `
+#				-DnsOnly
 		} catch [System.Net.Webexception] {
 			if ($_.CategoryInfo.Category -eq "ResourceUnavailable") {
 				$DnsRecords = "No DNS record"
@@ -273,6 +279,9 @@ function reverseDNSLookup($site) {
 				Write-Host("Resolve-DnsName returned an error while trying to resolve " + $site + " --> " + $_.CategoryInfo)
 			}
 		}
+
+	return($RnsRecords.Hostname)
+#	return($RnsRecords.NameHost)
 }
 
 ###############################################################################
