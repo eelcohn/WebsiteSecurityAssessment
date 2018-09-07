@@ -1,3 +1,6 @@
+v20180907:
+* Removed SSLObservarory check when no DNS record is found
+
 v20180824:
 * Bugfixes
 
