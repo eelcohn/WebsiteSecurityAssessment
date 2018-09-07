@@ -694,7 +694,7 @@ foreach ($CurrentHost in $Hosts) {
 								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
-								'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
+								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"' + $whoisResult + '"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
