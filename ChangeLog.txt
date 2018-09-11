@@ -1,3 +1,6 @@
+v20180911:
+* Added scan for insecure HTTP methods
+
 v20180907:
 * Removed SSLObservarory check when no DNS record is found
 
