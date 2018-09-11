@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20180824"
+$WSAVersion					= "v20180911"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v2/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -43,6 +43,15 @@ $BadHTTPHeaders = @("Server",
 					"X-Served-By",
 					"X-Served-Via",
 					"X-SharePointHealthScore")
+$BadHTTPMethods = @("DELETE",
+					"MERGE",
+					"OPTIONS",
+					"PATCH",
+					"PUT",
+					"TRACE")
+#					"CONNECT",
+#					"DEBUG",
+#					"TRACK",
 
 
 
@@ -170,8 +179,9 @@ function securityheaders($site) {
 
 	# Convert the JSON response
 	$ResultColour = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Result.Headers.'X-Score'))
-	$ResultColour = ConvertFrom-Json -InputObject $ResultColour
+
 	# Colour can be default, grey, red, orange, yellow, green
+	$ResultColour = ConvertFrom-Json -InputObject $ResultColour
 
 	if ($Result.Headers.'X-Grade') {
 		return ($Result.Headers.'X-Grade')
@@ -285,6 +295,36 @@ function reverseDNSLookup($IPAddress) {
 }
 
 ###############################################################################
+# Load the contents of the website
+###############################################################################
+
+function loadWebsite($site) {
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Loading website content..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+
+	try {
+		$Result = Invoke-WebRequest `
+			-MaximumRedirection 0 `
+			-ErrorAction Ignore `
+			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
+			-Uri $site `
+			-TimeoutSec $TimeOut `
+			-SessionVariable mysession
+	} catch [System.Net.Webexception] {
+		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
+			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
+				return ("site down")
+			} else {
+				return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
+			}
+		} else {
+			return ("Unknown error")
+		}
+	}
+
+	result $Result
+}
+
+###############################################################################
 # Analyze the contents of the website
 ###############################################################################
 
@@ -295,7 +335,7 @@ function analyzeWebsite($site) {
 		$Result = Invoke-WebRequest `
 			-MaximumRedirection 0 `
 			-ErrorAction Ignore `
-			-Headers @{"X-Client"="WebsiteSecurityAssessment "+$WSAversion} `
+			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
 			-Uri $site `
 			-TimeoutSec $TimeOut `
 			-SessionVariable mysession
@@ -349,7 +389,7 @@ function analyzeWebsite($site) {
 	# Check if any of the HTTP headers disclose unnecessary information
 	foreach ($BadHeader in $BadHTTPHeaders) {
 		if ($Result.Headers.$BadHeader -ne $null) {
-			$ReturnString += "HTTP header $BadHeader should be empty instead of '" + $Result.Headers.$BadHeader + "'`n"
+			$ReturnString += "Information disclosure in HTTP header $BadHeader: '" + $Result.Headers.$BadHeader + "'`n"
 		}
 	}
 
@@ -442,6 +482,39 @@ function analyzeWebsite($site) {
 }
 
 ###############################################################################
+# Analyze available HTTP methods
+###############################################################################
+
+function analyzeHTTPMethods($site) {
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Analyzing HTTP methods..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+
+	$ReturnString = ''
+
+	# Check if any insecure HTTP methods are available
+	foreach ($BadMethod in $BadHTTPMethods) {
+		try {
+			$Result = Invoke-WebRequest `
+				-MaximumRedirection 0 `
+				-ErrorAction Ignore `
+				-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
+				-Uri $site `
+				-Method $BadMethod `
+				-TimeoutSec $TimeOut
+#				-CustomMethod $BadMethod `
+		} catch [System.Net.Webexception] {
+			if ($_.CategoryInfo.Category -ne "InvalidOperation") {
+				# The webserver should return HTTP error code 405: Method not allowed or 501: Not Implemented
+				if (($_.Exception.Response.StatusCode.Value__ -ne "405") -and ($_.Exception.Response.StatusCode.Value__ -ne "501")) {
+					$ReturnString += "Dangerous HTTP method " + $BadMethod + " found`n"
+				}
+			}
+		}
+	}
+
+	return ($ReturnString.TrimEnd("`n"))
+}
+
+###############################################################################
 # Initiate the scans so we can retrieve the result later on
 ###############################################################################
 
@@ -454,7 +527,7 @@ function initiateScans() {
 			$TmpResult = Invoke-RestMethod `
 				-Uri ($SSLLabsAPIUrl + '?host=' + $CurrentHost + '&all=done&hideResults=true&ignoreMismatch=on')
 		} catch [System.Net.Webexception] {
-			if ($_.Exception.Response.StatusCode.Value__ -eq "429") {
+			if ($_.Exception.Response.StatusCode.Value__ -eq "405") {
 				$wait = 15
 			} else {
 				if ($_.CategoryInfo.Category -eq "InvalidOperation") {
@@ -685,6 +758,9 @@ foreach ($CurrentHost in $Hosts) {
 							# Analyze the headers
 							$WebsiteSuggestions = analyzeWebsite("https://" + $CurrentHost)
 
+							# Analyze the HTTP methods
+							$WebsiteSuggestions += analyzeHTTPMethods("https://" + $CurrentHost)
+
 							# Check if no DNS record was found
 							if ($SSLResult.statusMessage -eq 'Unable to resolve domain name') {
 								# Write results to output file
@@ -738,6 +814,9 @@ foreach ($CurrentHost in $Hosts) {
 				
 							# Analyze the website content
 							$WebsiteSuggestions = analyzeWebsite("https://" + $CurrentHost)
+
+							# Analyze the HTTP methods
+							$WebsiteSuggestions += analyzeHTTPMethods("https://" + $CurrentHost)
 				
 							# Iterate through all the endpoints
 							foreach ($endpoint in $SSLResult.endpoints) {
