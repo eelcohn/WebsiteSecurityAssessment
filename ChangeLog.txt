@@ -1,3 +1,7 @@
+v20180920:
+* Moved from SSLLabs API v2 to v3
+* Added notification for DNS CAA usage
+
 v20180911:
 * Added scan for insecure HTTP methods
 
