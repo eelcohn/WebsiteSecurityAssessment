@@ -17,9 +17,9 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20180911"
+$WSAVersion					= "v20180920"
 $Protocols					= @("https")
-$SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v2/analyze"
+$SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
 $MozillaObservatoryAPIUrl	= "https://http-observatory.security.mozilla.org/api/v1/analyze"
 $RIPEWhoisAPIUrl			= "https://stat.ripe.net/data/whois/data.json"
@@ -389,7 +389,7 @@ function analyzeWebsite($site) {
 	# Check if any of the HTTP headers disclose unnecessary information
 	foreach ($BadHeader in $BadHTTPHeaders) {
 		if ($Result.Headers.$BadHeader -ne $null) {
-			$ReturnString += "Information disclosure in HTTP header $BadHeader: '" + $Result.Headers.$BadHeader + "'`n"
+			$ReturnString += "Information disclosure in HTTP header " + $BadHeader + ": '" + $Result.Headers.$BadHeader + "'`n"
 		}
 	}
 
@@ -400,32 +400,32 @@ function analyzeWebsite($site) {
 
 	# Check if 'Content-Security-Policy' header is empty
 	if ($Result.Headers.'Content-Security-Policy' -eq "") {
-		$ReturnString += "Set 'Content-Security-Policy'`n"
+		$ReturnString += "Set HTTP header 'Content-Security-Policy'`n"
 	}
 
 	# Check if 'X-Frame-Options' header is set correctly
 	if ($Result.Headers.'X-Frame-Options' -ne "SAMEORIGIN") {
-		$ReturnString += "Set 'X-Frame-Options' to 'SAMEORIGIN'`n"
+		$ReturnString += "Set HTTP header 'X-Frame-Options' to 'SAMEORIGIN'`n"
 	}
 
 	# Check if 'X-XSS-Protection' header is set correctly
 	if ($Result.Headers.'X-XSS-Protection' -ne "1; mode=block") {
-		$ReturnString += "Set 'X-XSS-Protection' to '1; mode=block'`n"
+		$ReturnString += "Set HTTP header 'X-XSS-Protection' to '1; mode=block'`n"
 	}
 
 	# Check if 'X-Content-Type-Options' header is set correctly
 	if ($Result.Headers.'X-Content-Type-Options' -ne "nosniff") {
-		$ReturnString += "'Set X-Content-Type-Options' to 'nosniff'`n"
+		$ReturnString += "'Set HTTP header 'X-Content-Type-Options' to 'nosniff'`n"
 	}
 
 	# Check if 'Referrer-Policy' header is set
 	if ($Result.Headers.'Referrer-Policy' -eq $null) {
-		$ReturnString += "Set 'Referrer-Policy'`n"
+		$ReturnString += "Set HTTP header 'Referrer-Policy'`n"
 	}
 
 	# Check if 'Public-Key-Pins' header is set
 	if ($Result.Headers.'Public-Key-Pins' -eq $null) {
-		$ReturnString += "Set 'Public-Key-Pins'`n"
+		$ReturnString += "Set HTTP header 'Public-Key-Pins'`n"
 	}
 
 	# Check if 'Strict-Transport-Security' header is set correctly
@@ -439,7 +439,7 @@ function analyzeWebsite($site) {
 				$item2 = $item.Split("=").Trim()
 				# Qualsys advises a minimun value for max-age of 120 days
 				if ($item2[1] -le 10368000) {
-					$ReturnString = "Set 'Strict-Transport-Security' max-age to at least 10368000`n"
+					$ReturnString = "Set HTTP header 'Strict-Transport-Security' max-age to at least 10368000`n"
 				}
 			}
 			if ($item -eq "includeSubdomains") {
@@ -450,13 +450,13 @@ function analyzeWebsite($site) {
 			}
 		}
 		if (!$HSTSmaxage) {
-			$ReturnString += "Set 'Strict-Transport-Security' max-age to at least 10368000`n"
+			$ReturnString += "Set HTTP header 'Strict-Transport-Security' max-age to at least 10368000`n"
 		}
 		if (!$HSTSinclsubdom) {
-			$ReturnString += "Set 'Strict-Transport-Security' with 'includeSubdomains' value`n"
+			$ReturnString += "Set HTTP header 'Strict-Transport-Security' with 'includeSubdomains' value`n"
 		}
 		if (!$HSTSpreload) {
-			$ReturnString += "Set 'Strict-Transport-Security' with 'preload' value`n"
+			$ReturnString += "Set HTTP header 'Strict-Transport-Security' with 'preload' value`n"
 		}
 	}
 
@@ -470,7 +470,7 @@ function analyzeWebsite($site) {
 	# Find the value of <meta generator=""> tag in the website (if any). This will show the software the website is running on.
 	$MetaGenerator = ($Result.ParsedHtml.getElementsByTagName('meta') | Where {$_.name -eq 'generator'}).content
 	if ($MetaGenerator -ne $null) {
-		$ReturnString += "Website is running $MetaGenerator`n"
+		$ReturnString += "Information disclosure found in metatag '<meta generator>: " + $MetaGenerator + "`n"
 	}
 
 	if ($ReturnString -ne "") {
@@ -817,7 +817,18 @@ foreach ($CurrentHost in $Hosts) {
 
 							# Analyze the HTTP methods
 							$WebsiteSuggestions += analyzeHTTPMethods("https://" + $CurrentHost)
-				
+
+							# Analyze the HTTP methods
+							if ($SSLResult.certs[0].dnsCaa = $false) {
+								$WebsiteSuggestions += "Add a DNS CAA record"
+							}
+
+							# Get the certificate's keysize, validation dates and issuer
+							$CertificateKeySize = $SSLResult.certs[0].keyStrength
+							$CertificateDateBefore = ((Get-Date("1/1/1970")).addSeconds([int64]$SSLResult.certs[0].notBefore / 1000).ToLocalTime()).ToString("yyyy-MM-dd")
+							$CertificateDateAfter = ((Get-Date("1/1/1970")).addSeconds([int64]$SSLResult.certs[0].notAfter / 1000).ToLocalTime()).ToString("yyyy-MM-dd")
+							$CertificateIssuer = $SSLResult.certs[0].issuerSubject -replace '^CN=|,.*$'
+
 							# Iterate through all the endpoints
 							foreach ($endpoint in $SSLResult.endpoints) {
 								$Suggestions = ""
@@ -837,11 +848,6 @@ foreach ($CurrentHost in $Hosts) {
 								}
 
 								if ($endpoint.statusMessage -eq "Ready") {
-									# Get the certificate's keysize, validation dates and issuer
-									$CertificateKeySize = $endpoint.details.key.strength
-									$CertificateDateBefore = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notBefore / 1000).ToLocalTime()).ToString("yyyy-MM-dd")
-									$CertificateDateAfter = ((Get-Date("1/1/1970")).addSeconds([int64]$endpoint.details.cert.notAfter / 1000).ToLocalTime()).ToString("yyyy-MM-dd")
-									$CertificateIssuer = $endpoint.details.cert.issuerLabel
 
 									if ($endpoint.grade -ne $endpoint.gradeTrustIgnored) {
 										$SSLLabsGrade = $endpoint.grade + ' (' + $endpoint.gradeTrustIgnored + ')'
