@@ -1,3 +1,6 @@
+v20180930:
+* Added check for HTTP header Via
+
 v20180929:
 * Added checks for X-Debug-Token, X-Debug-Token-Link, X-Drupal-Dynamic-Cache, X-Drupal-Cache-Tags, X-Drupal-Cache-Contexts, X-Drupal-Cache and X-Generator HTTP headers (information disclosure)
 
