@@ -33,6 +33,7 @@ $RipeCache					= New-Object System.Data.DataTable
 $RipeCache.Columns.Add("IPAddress", [string]) | Out-Null
 $RipeCache.Columns.Add("ASNHolder", [string]) | Out-Null
 $BadHTTPHeaders = @("Server",
+					"Via",
 					"X-App-Server",
 					"X-AspNet-Version",
 					"X-AspNetMvc-Version",
