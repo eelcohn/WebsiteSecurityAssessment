@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20180930"
+$WSAVersion					= "v20181001"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -221,7 +221,7 @@ function mozillaObservatory($site) {
 	$Result = ConvertFrom-Json -InputObject $Result.Content
 
 	# Ugly hack to prevent looping
-	$j = 0
+	$j = 1
 
 	Do {
 		If ($Result.error) {
@@ -230,7 +230,7 @@ function mozillaObservatory($site) {
 
 		# Display a message if the scan hasn't finished yet
 		if ($Result.state -ne "FINISHED") {
-			Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Getting Mozilla HTTP Observatory grading (pausing for 5 seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+			Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Getting Mozilla HTTP Observatory grading: attempt " + $j + " of " + $MaxRequests + " (pausing for 5 seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 			Start-Sleep -s 5
 
 			# Get the result from Mozilla HTTP Observatory by making a GET request
