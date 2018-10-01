@@ -1,3 +1,6 @@
+v20181001:
+* Added attemts counter for querying Mozilla Observatory
+
 v20180930:
 * Added check for HTTP header Via
 
