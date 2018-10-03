@@ -1,3 +1,6 @@
+v20181003:
+* Fixed typo in output for X-Content-Type-Options
+
 v20181001:
 * Added attemts counter for querying Mozilla Observatory
 
