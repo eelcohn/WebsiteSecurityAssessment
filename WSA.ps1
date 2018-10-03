@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20181001"
+$WSAVersion					= "v20181003"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -423,7 +423,7 @@ function analyzeWebsite($site) {
 
 	# Check if 'X-Content-Type-Options' header is set correctly
 	if ($Result.Headers.'X-Content-Type-Options' -ne "nosniff") {
-		$ReturnString += "'Set HTTP header 'X-Content-Type-Options' to 'nosniff'`n"
+		$ReturnString += "Set HTTP header 'X-Content-Type-Options' to 'nosniff'`n"
 	}
 
 	# Check if 'Referrer-Policy' header is set
