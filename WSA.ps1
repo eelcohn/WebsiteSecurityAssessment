@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20181003"
+$WSAVersion					= "v20181004"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -298,8 +298,8 @@ function reverseDNSLookup($IPAddress) {
 			}
 		}
 
-	return($RnsRecords.Hostname)
-#	return($RnsRecords.NameHost)
+	return($DnsRecords.Hostname)
+#	return($DnsRecords.NameHost)
 }
 
 ###############################################################################
@@ -345,8 +345,8 @@ function analyzeWebsite($site) {
 			-ErrorAction Ignore `
 			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
 			-Uri $site `
-			-TimeoutSec $TimeOut `
-			-SessionVariable mysession
+			-TimeoutSec $TimeOut
+#			-SessionVariable mysession
 	} catch [System.Net.Webexception] {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
@@ -371,7 +371,8 @@ function analyzeWebsite($site) {
 	$ReturnString = ''
 
 	# Analyze the cookies
-	foreach ($Cookie in $mysession.Cookies.GetCookies($site)) {
+	foreach ($Cookie in $Result.BaseResponse.Cookies) {
+#	foreach ($Cookie in $mysession.Cookies.GetCookies($site)) {
 		if (($Cookie.Secure -ne "True") -Or ($Cookie.HttpOnly -ne "True")) {
 			$ReturnString = $ReturnString + "Set the "
 			# Cookie should have the Secure attribute set
@@ -854,6 +855,7 @@ foreach ($CurrentHost in $Hosts) {
 								if ($endpoint.hasWarnings -eq "true") {
 									$Suggestions = $Suggestions + "Fix all warnings from the SSL Labs test`n"
 								}
+$rDNS = reverseDNSLookup($endpoint.ipAddress)
 
 								if ($endpoint.statusMessage -eq "Ready") {
 
@@ -865,7 +867,7 @@ foreach ($CurrentHost in $Hosts) {
 									'"https"' + $Delimiter + `
 									'"' + $CurrentHost + '"' + $Delimiter + `
 									'"' + $endpoint.ipAddress + '"' + $Delimiter + `
-									'"' + $endpoint.serverName + '"' + $Delimiter + `
+									'"' + $rDNS + '"' + $Delimiter + `
 									'"' + $SSLLabsGrade + '"' + $Delimiter + `
 									'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
 									'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
@@ -879,7 +881,7 @@ foreach ($CurrentHost in $Hosts) {
 									'"https"' + $Delimiter + `
 									'"' + $CurrentHost + '"' + $Delimiter + `
 									'"' + $endpoint.ipAddress + '"' + $Delimiter + `
-									'"' + $endpoint.serverName + '"'  + $Delimiter + `
+									'"' + $rDNS + '"' + $Delimiter + `
 									'"' + $endpoint.statusMessage + '"' + $Delimiter + `
 									'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
 									'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
