@@ -1,3 +1,6 @@
+V20181004:
+* Optimized cookie analysis: should be a bit quicker now
+
 v20181003:
 * Fixed typo in output for X-Content-Type-Options
 
