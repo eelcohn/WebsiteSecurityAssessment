@@ -50,6 +50,7 @@ $BadHTTPHeaders = @("Server",
 					"X-Powered-By",
 					"X-Served-By",
 					"X-Served-Via",
+					"X-Server-Powered-By",
 					"X-SharePointHealthScore")
 $BadHTTPMethods = @("DELETE",
 					"MERGE",
