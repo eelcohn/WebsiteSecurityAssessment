@@ -1,5 +1,6 @@
 V20181004:
 * Optimized cookie analysis: should be a bit quicker now
+* Added check for X-Server-Powered-By HTTP header (information disclosure)
 
 v20181003:
 * Fixed typo in output for X-Content-Type-Options
