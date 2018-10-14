@@ -1,4 +1,7 @@
-V20181004:
+v20181014:
+* Added X-Powered-By-Plesk header check
+
+v20181004:
 * Optimized cookie analysis: should be a bit quicker now
 * Added check for X-Server-Powered-By HTTP header (information disclosure)
 
