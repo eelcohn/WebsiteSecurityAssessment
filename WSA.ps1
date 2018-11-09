@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20181014"
+$WSAVersion					= "v20181108"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -286,19 +286,19 @@ function getDNSRecords($site) {
 ###############################################################################
 
 function reverseDNSLookup($IPAddress) {
-		try {
-			$DnsRecords = [System.Net.Dns]::GetHostByAddress($IPAddress)
-#			$DnsRecords = Resolve-DnsName `
-#				$site `
-#				-Type A_AAAA `
-#				-DnsOnly
-		} catch [System.Net.Webexception] {
-			if ($_.CategoryInfo.Category -eq "ResourceUnavailable") {
-				$DnsRecords = "No DNS record"
-			} else {
-				Write-Host("Resolve-DnsName returned an error while trying to resolve " + $site + " --> " + $_.CategoryInfo)
-			}
+	try {
+		$DnsRecords = [System.Net.Dns]::GetHostByAddress($IPAddress)
+#		$DnsRecords = Resolve-DnsName `
+#			$site `
+#			-Type A_AAAA `
+#			-DnsOnly
+	} catch [Exception] {
+		if ($_.Exception.ErrorCode -eq 11004) {
+			return ("Not available")
+		} else {
+			Write-Host("Resolve-DnsName returned an error while trying to resolve " + $site + " --> " + $_.CategoryInfo)
 		}
+	}
 
 	return($DnsRecords.Hostname)
 #	return($DnsRecords.NameHost)
@@ -322,7 +322,7 @@ function loadWebsite($site) {
 	} catch [System.Net.Webexception] {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
-				return ("site down")
+				return ("")
 			} else {
 				return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
 			}
@@ -352,7 +352,7 @@ function analyzeWebsite($site) {
 	} catch [System.Net.Webexception] {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
-				return ("site down")
+				return ("")
 			} else {
 				return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
 			}
@@ -830,7 +830,11 @@ foreach ($CurrentHost in $Hosts) {
 							$WebsiteSuggestions += analyzeHTTPMethods("https://" + $CurrentHost)
 
 							# Analyze the HTTP methods
-							if ($SSLResult.certs[0].dnsCaa = $false) {
+							if ($SSLResult.certs[0].dnsCaa) {
+								if ($SSLResult.certs[0].dnsCaa = $false) {
+									$WebsiteSuggestions += "Add a DNS CAA record"
+								}
+							} else {
 								$WebsiteSuggestions += "Add a DNS CAA record"
 							}
 
