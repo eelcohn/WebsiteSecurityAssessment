@@ -1,3 +1,6 @@
+v20181108:
+* Fixed error handling for reverse DNS lookup and DNSCAA
+
 v20181014:
 * Added X-Powered-By-Plesk header check
 
