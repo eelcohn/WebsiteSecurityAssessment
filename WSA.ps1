@@ -654,7 +654,7 @@ $Hosts = Get-Content ($InputFile)
 # Prepare header of the HTTP headers debug file
 '"URL"' + $Delimiter + `
 '"HTTP header"' + $Delimiter + `
-'"Value"' + `
+'"Value"' + $Delimiter + `
 '"Rating"' `
 	| Out-File $HeadersDebugFile
 
