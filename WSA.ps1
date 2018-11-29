@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20181108"
+$WSAVersion					= "v20181129"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -32,6 +32,32 @@ $WhoisCache.Columns.Add("Whois", [string]) | Out-Null
 $RipeCache					= New-Object System.Data.DataTable
 $RipeCache.Columns.Add("IPAddress", [string]) | Out-Null
 $RipeCache.Columns.Add("ASNHolder", [string]) | Out-Null
+$GoodHTTPHeaders = @("Accept-Ranges",
+					"Cache-Control",
+					"Connection",
+					"Content-Language",
+					"Content-Length",
+					"Content-Security-Policy",
+					"Content-Security-Policy-Report-Only",
+					"Content-Type",
+					"Date",
+					"Expect-CT",
+					"Expires",
+					"ETag",
+					"Keep-Alive",
+					"Last-Modified",
+					"Link",
+					"Location",
+					"P3p",
+					"Pragma",
+					"Referrer-Policy",
+					"Set-Cookie",
+					"Strict-Transport-Security"
+					"Transfer-Encoding",
+					"Vary",
+					"X-Content-Type-Options",
+					"X-Frame-Options",
+					"X-XSS-Protection")
 $BadHTTPHeaders = @("Server",
 					"Via",
 					"X-App-Server",
@@ -81,7 +107,7 @@ function print_help() {
 	Write-Host ("")
 	Write-Host ("Options:")
 	Write-Host ("	-h,		--help								 Print this help message")
-	Write-Host ("	-d <url>,  --domain <url>						 Specify target domain")
+	Write-Host ("	-d <url>, --domain <url>						 Specify target domain")
 	Write-Host ("	-i <file>, --input <file>						 Specify file with target domains (default: Hosts.txt)")
 }
 
@@ -364,9 +390,16 @@ function analyzeWebsite($site) {
 	# Write headers to debug header file
 	$Hdr = ''
 	ForEach ($Hdr in $Result.Headers.Keys) {
+	$HeaderRating = "Unknown"
+		if ($BadHTTPHeaders.Contains($Hdr)) {
+			$HeaderRating = "Bad"
+		} elseif ($GoodHTTPHeaders.Contains($Hdr)) {
+			$HeaderRating = "Good"
+		}
 		'"' + $site + '"' + $Delimiter + `
 		'"' + $Hdr + '"' + $Delimiter + `
-		'"' + $Result.Headers.$Hdr + '"' `
+		'"' + $Result.Headers.$Hdr + '"' + $Delimiter + `
+		'"' + $HeaderRating + '"' `
 			| Out-File -Append $HeadersDebugFile
 	}
 
@@ -622,6 +655,7 @@ $Hosts = Get-Content ($InputFile)
 '"URL"' + $Delimiter + `
 '"HTTP header"' + $Delimiter + `
 '"Value"' `
+'"Rating"' `
 	| Out-File $HeadersDebugFile
 
 # Prepare header of the HTTP headers debug file
@@ -644,7 +678,7 @@ foreach ($CurrentHost in $Hosts) {
 	Write-Progress `
 		-Activity "Assessing security..." `
 		-status "Current host: $CurrentHost" `
-		-percentComplete  ($i++ / $Hosts.count*100)
+		-percentComplete ($i++ / $Hosts.count*100)
 
 	foreach ($HTTPPrefix in $Protocols) {
 		# Perform a reverse DNS lookup for the hostname
