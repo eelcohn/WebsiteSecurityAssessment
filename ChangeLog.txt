@@ -1,3 +1,6 @@
+v20181129:
+* Updated HTTP header analysis with ratings (good/unknown/bad)
+
 v20181108:
 * Fixed error handling for reverse DNS lookup and DNSCAA
 
