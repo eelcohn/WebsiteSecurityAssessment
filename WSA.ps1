@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20181129"
+$WSAVersion					= "v20181201"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -55,6 +55,7 @@ $GoodHTTPHeaders = @("Accept-Ranges",
 					"Strict-Transport-Security"
 					"Transfer-Encoding",
 					"Vary",
+					"X-Content-Security-Policy",
 					"X-Content-Type-Options",
 					"X-Frame-Options",
 					"X-XSS-Protection")
