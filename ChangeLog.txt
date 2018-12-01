@@ -1,3 +1,6 @@
+v20181201:
+* Added X-Content-Security-Policy to the good HTTP header list
+
 v20181129:
 * Updated HTTP header analysis with ratings (good/unknown/bad)
 
