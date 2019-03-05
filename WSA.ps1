@@ -3,7 +3,7 @@
 # the SSLLabs, SecurityHeaders.io and Mozilla SSL Observatory API's to
 # automatically retrieve the grading for a list of websites.
 #
-# Written by Eelco Huininga 2017-2018
+# Written by Eelco Huininga 2017-2019
 ###############################################################################
 
 # Global user configurable variables
@@ -106,7 +106,7 @@ $BadHTTPMethods = @("DELETE",
 function print_help() {
 	Write-Host ("This script will assess several security aspects of websites. It will use the SSLLabs, SecurityHeaders.io and Mozilla SSL Observatory API's to automatically retrieve the grading for a list of websites.")
 	Write-Host ("")
-	Write-Host ("Written by Eelco Huininga 2017-2018")
+	Write-Host ("Written by Eelco Huininga 2017-2019")
 	Write-Host ("")
 	Write-Host ("Usage:")
 	Write-Host ("	$0 [ options ]")
@@ -518,9 +518,11 @@ function analyzeWebsite($site) {
 	}
 
 	# Find the value of <meta generator=""> tag in the website (if any). This will show the software the website is running on.
-	$MetaGenerator = ($Result.ParsedHtml.getElementsByTagName('meta') | Where {$_.name -eq 'generator'}).content
-	if ($MetaGenerator -ne $null) {
-		$ReturnString += "Information disclosure found in metatag '<meta generator>: " + $MetaGenerator + "`n"
+	if ($Result.ParsedHtml -ne $null) {
+		$MetaGenerator = ($Result.ParsedHtml.getElementsByTagName('meta') | Where {$_.name -eq 'generator'}).content
+		if ($MetaGenerator -ne $null) {
+			$ReturnString += "Information disclosure found in metatag '<meta generator>: " + $MetaGenerator + "`n"
+		}
 	}
 
 	if ($ReturnString -ne "") {
@@ -872,10 +874,10 @@ foreach ($CurrentHost in $Hosts) {
 							# Analyze the HTTP methods
 							if ($SSLResult.certs[0].dnsCaa) {
 								if ($SSLResult.certs[0].dnsCaa = $false) {
-									$WebsiteSuggestions += "Add a DNS CAA record"
+									$WebsiteSuggestions += "`nAdd a DNS CAA record"
 								}
 							} else {
-								$WebsiteSuggestions += "Add a DNS CAA record"
+								$WebsiteSuggestions += "`nAdd a DNS CAA record"
 							}
 
 							# Get the certificate's keysize, validation dates and issuer
