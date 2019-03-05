@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20190226"
+$WSAVersion					= "v20190305"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -70,6 +70,7 @@ $BadHTTPHeaders = @("Server",
 					"X-Drupal-Cache-Tags",
 					"X-Drupal-Cache-Contexts",
 					"X-Drupal-Cache",
+					"X-FEServer",
 					"X-Generator",
 					"X-KoobooCMS-Version",
 					"X-MS-Server-Fqdn",
