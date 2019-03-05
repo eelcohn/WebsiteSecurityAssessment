@@ -1,5 +1,7 @@
 v20190305:
 * Added X-FEServer information disclosure warning
+* Fixed error on analyzing HTTP content when content length is 0
+* Fixed linefeed on DNS CAA recommendation
 
 v20190226:
 * Added X-Varnish* information disclosure warning
