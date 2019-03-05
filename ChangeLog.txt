@@ -1,3 +1,6 @@
+v20190305:
+* Added X-FEServer information disclosure warning
+
 v20190226:
 * Added X-Varnish* information disclosure warning
 
