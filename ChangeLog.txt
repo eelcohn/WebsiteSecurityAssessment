@@ -1,3 +1,6 @@
+v20190307:
+* Added Feature-Policy to list of known good headers
+
 v20190305:
 * Added X-FEServer information disclosure warning
 * Fixed error on analyzing HTTP content when content length is 0
