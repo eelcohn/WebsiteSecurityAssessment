@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20190307"
+$WSAVersion					= "v20190328"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -85,7 +85,8 @@ $BadHTTPHeaders = @("Server",
 					"X-Varnish",
 					"X-Varnish-Cache",
 					"X-Varnish-Cache-Hits",
-					"X-Varnish-Cacheable")
+					"X-Varnish-Cacheable",
+					"X-Varnish-Host")
 $BadHTTPMethods = @("DELETE",
 					"MERGE",
 					"OPTIONS",
