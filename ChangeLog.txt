@@ -1,5 +1,6 @@
 v20190328:
 * Added X-Varnish-Host to list of known bad headers
+* Added X-Engine to list of known bad headers
 
 v20190307:
 * Added Feature-Policy to list of known good headers
