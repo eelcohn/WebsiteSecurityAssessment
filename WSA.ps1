@@ -329,7 +329,7 @@ function reverseDNSLookup($IPAddress) {
 #			-DnsOnly
 	} catch [Exception] {
 		if ($_.Exception.ErrorCode -eq 11004) {
-			return ("Not available")
+			return ("N/A")
 		} else {
 			Write-Host("Resolve-DnsName returned an error while trying to resolve " + $site + " --> " + $_.CategoryInfo)
 		}
