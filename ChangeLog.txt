@@ -1,3 +1,7 @@
+v20190404:
+* Fixed an issue where getElementsByTagName() returned HRESULT: 0x800A01B6
+* Fixed retry delay when SSLLabs site is down
+
 v20190403:
 * Added Public-Key-Pins to list of known good headers
 
