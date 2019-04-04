@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20190403"
+$WSAVersion					= "v20190404"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -523,7 +523,7 @@ function analyzeWebsite($site) {
 
 	# Find the value of <meta generator=""> tag in the website (if any). This will show the software the website is running on.
 	if ($Result.ParsedHtml -ne $null) {
-		$MetaGenerator = ($Result.ParsedHtml.getElementsByTagName('meta') | Where {$_.name -eq 'generator'}).content
+		$MetaGenerator = ($Result.ParsedHtml.IHTMLDocument3_getElementsByTagName('meta') | Where {$_.name -eq 'generator'}).content
 		if ($MetaGenerator -ne $null) {
 			$ReturnString += "Information disclosure found in metatag '<meta generator>: " + $MetaGenerator + "`n"
 		}
@@ -588,6 +588,7 @@ function initiateScans() {
 			} else {
 				if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 					Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: site is temporarily down, retrying..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+					$wait = 15
 				} else {
 					Write-Host ('`nSSLLabs returned an error: ' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
 				}
