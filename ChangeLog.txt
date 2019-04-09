@@ -1,3 +1,6 @@
+v20190409:
+* Added X-AH-Environment to list of known bad headers
+
 v20190404:
 * Fixed an issue where getElementsByTagName() returned HRESULT: 0x800A01B6
 * Fixed retry delay when SSLLabs site is down
