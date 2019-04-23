@@ -1,4 +1,7 @@
 v20190423:
+* Added Access-Control-Allow-Origin to list of known good headers
+* Added Access-Control-Allow-Methods to list of known good headers
+* Added Access-Control-Allow-Headers to list of known good headers
 * Added check for Access-Control-Allow-Origin header
 
 v20190411:
