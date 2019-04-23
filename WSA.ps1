@@ -479,6 +479,11 @@ function analyzeWebsite($site) {
 		$ReturnString += "Set HTTP header 'Referrer-Policy'`n"
 	}
 
+	# Check if 'Access-Control-Allow-Origin' is strict enough
+	if ($Result.Headers.'Access-Control-Allow-Origin' -eq "*") {
+		$ReturnString += "Set HTTP header 'Access-Control-Allow-Origin' to a more strict value`n"
+	}
+
 	# Check if 'Public-Key-Pins' header is set
 	if ($Result.Headers.'Public-Key-Pins' -eq $null) {
 		$ReturnString += "Set HTTP header 'Public-Key-Pins'`n"
