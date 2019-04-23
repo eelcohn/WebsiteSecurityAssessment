@@ -1,3 +1,6 @@
+v20190423:
+* Added check for Access-Control-Allow-Origin header
+
 v20190411:
 * Added MicrosoftSharePointTeamServices to list of known bad headers
 
