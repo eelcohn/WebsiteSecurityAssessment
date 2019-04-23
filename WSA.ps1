@@ -33,6 +33,9 @@ $RipeCache					= New-Object System.Data.DataTable
 $RipeCache.Columns.Add("IPAddress", [string]) | Out-Null
 $RipeCache.Columns.Add("ASNHolder", [string]) | Out-Null
 $GoodHTTPHeaders = @("Accept-Ranges",
+					"Access-Control-Allow-Origin",
+					"Access-Control-Allow-Methods",
+					"Access-Control-Allow-Headers",
 					"Cache-Control",
 					"Connection",
 					"Content-Language",
