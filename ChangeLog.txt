@@ -1,3 +1,6 @@
+v20190429:
+* Fixed reverseDNSLookup() for IPv6 addresses
+
 v20190423:
 * Added Access-Control-Allow-Origin to list of known good headers
 * Added Access-Control-Allow-Methods to list of known good headers
