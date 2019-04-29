@@ -328,7 +328,9 @@ function getDNSRecords($site) {
 
 function reverseDNSLookup($IPAddress) {
 	try {
-		$DnsRecords = [System.Net.Dns]::GetHostByAddress($IPAddress)
+		$DnsRecords = [System.Net.Dns]::GetHostEntry($IPAddress)
+#
+#		$DnsRecords = [System.Net.Dns]::GetHostByAddress($IPAddress)
 #		$DnsRecords = Resolve-DnsName `
 #			$site `
 #			-Type A_AAAA `
