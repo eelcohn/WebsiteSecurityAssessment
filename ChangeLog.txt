@@ -1,5 +1,8 @@
 v20190430:
 * Fixed reverseDNSLookup() error handling
+* Added reverse DNS lookup cache
+* Added check for warnings on common DH primes
+* Added check for OCSP stapling
 * Cleaned up verbose output to user
 
 v20190429:
