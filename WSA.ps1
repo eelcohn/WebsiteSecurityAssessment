@@ -780,6 +780,9 @@ foreach ($CurrentHost in $Hosts) {
 					# Analyze the website content
 					$WebsiteSuggestions = analyzeWebsite("http://" + $CurrentHost)
 
+					# Analyze the HTTP methods
+					$WebsiteSuggestions += analyzeHTTPMethods("http://" + $CurrentHost)
+
 					foreach ($endpoint in $DNSResults) {
 						# Get RIPE ASN prefix for the IP address (hosting provider info)
 						$PrefixResult = getPrefix ($endpoint)
