@@ -1,3 +1,6 @@
+v20190430:
+* Fixed reverseDNSLookup() error handling
+
 v20190429:
 * Fixed reverseDNSLookup() for IPv6 addresses
 
