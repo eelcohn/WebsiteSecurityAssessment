@@ -7,6 +7,7 @@
 ###############################################################################
 
 # Global user configurable variables
+$Protocols					= @("http", "https")
 $InputFile					= "Hosts.txt"
 $ResultsFile				= "WSA-results-" + (Get-Date -UFormat %Y%m%d) + ".csv"
 $altNamesFile				= "WSA-debug.UnknownHostsFound-" + (Get-Date -UFormat %Y%m%d) + ".csv"
@@ -18,7 +19,6 @@ $UseProxy					= $true
 
 # Global system variables
 $WSAVersion					= "v20190430"
-$Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
 $MozillaObservatoryAPIUrl	= "https://http-observatory.security.mozilla.org/api/v1/analyze"
@@ -176,7 +176,7 @@ function whois($site) {
 			}
 		}
 	} else {
-		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Performing WHOIS lookup for "+ $site + ": found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing WHOIS lookup for "+ $site + ": found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
 	return $Result
@@ -310,14 +310,16 @@ function mozillaObservatory($site) {
 # Get the DNS records for a site
 ###############################################################################
 
-function getDNSRecords($site) {
+function DNSLookup($site) {
 	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Performing DNS lookup..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 	try {
-		$DNSResult = [System.Net.Dns]::GetHostAddress($site)
-#		$DNSResult = Invoke-RestMethod `
-#			-Uri ($RIPEDNSAPIUrl + '?resource=' + $site)
-	} catch [System.Net.Webexception] {
+		$DnsRecords = Resolve-DnsName `
+			-Name $site `
+			-Type A_AAAA `
+			-DnsOnly `
+			-ErrorAction Stop
+	} catch [Exception] {
 		switch ($_.CategoryInfo.Category) {
 			# No DNS record was found
 			"ResourceUnavailable" {
@@ -341,7 +343,7 @@ function getDNSRecords($site) {
 		}
 	}
 
-	return ($DNSResult.IPAddressToString)
+	return ($DnsRecords.IPAddress)
 }
 
 ###############################################################################
@@ -751,12 +753,12 @@ foreach ($CurrentHost in $Hosts) {
 		-percentComplete ($i++ / $Hosts.count*100)
 
 	foreach ($HTTPPrefix in $Protocols) {
-		# Perform a reverse DNS lookup for the hostname
-#		$rdns = reverseDNSLookup($CurrentHost)
-
 		switch ($HTTPPrefix) {
 			# Check the hostname via HTTP
 			"http" {
+				# Perform a DNS lookup for the hostname
+				$DNSResults = DNSLookup($CurrentHost)
+
 				# Get WHOIS information for domain
 				$whoisResult = whois($CurrentHost)
 
@@ -769,20 +771,28 @@ foreach ($CurrentHost in $Hosts) {
 				# Analyze the website content
 				$WebsiteSuggestions = analyzeWebsite("http://" + $CurrentHost)
 
-				# Write results to output file
-				'"http"' + $Delimiter + `
-				'"' + $CurrentHost + '"' + $Delimiter + `
-				'"(implement this)"' + $Delimiter + `
-				'"N/A"' + $Delimiter + `
-				'"N/A"' + $Delimiter + `
-				'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
-				'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
-				'"N/A"' + $Delimiter + `
-				'"' + $whoisResult + '"' + $Delimiter + `
-				'"N/A"' + $Delimiter + `
-				'"N/A"' + $Delimiter + `
-				'"' + $WebsiteSuggestions + '"' `
-					| Out-File -Append $ResultsFile
+				foreach ($endpoint in $DNSResults) {
+					# Get RIPE ASN prefix for the IP address (hosting provider info)
+					$PrefixResult = getPrefix ($endpoint)
+
+					# Perform reverse DNS lookup for the IP address
+					$rDNS = reverseDNSLookup($endpoint)
+
+					# Write results to output file
+					'"http"' + $Delimiter + `
+					'"' + $CurrentHost + '"' + $Delimiter + `
+					'"' + $endpoint + '"' + $Delimiter + `
+					'"' + $rDNS + '"' + $Delimiter + `
+					'"N/A"' + $Delimiter + `
+					'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+					'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
+					'"' + $PrefixResult + '"' + $Delimiter + `
+					'"' + $whoisResult + '"' + $Delimiter + `
+					'"N/A"' + $Delimiter + `
+					'"N/A"' + $Delimiter + `
+					'"' + $WebsiteSuggestions + '"' `
+						| Out-File -Append $ResultsFile
+				}
 
 				break
 			}
