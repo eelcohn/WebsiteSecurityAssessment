@@ -307,6 +307,8 @@ function mozillaObservatory($site) {
 ###############################################################################
 
 function getDNSRecords($site) {
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - DNS lookup..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+
 	try {
 		$DNSResult = [System.Net.Dns]::GetHostAddress($site)
 #		$DNSResult = Invoke-RestMethod `
@@ -327,6 +329,8 @@ function getDNSRecords($site) {
 ###############################################################################
 
 function reverseDNSLookup($IPAddress) {
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Reverse DNS lookup..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+
 	try {
 #		$DnsRecords = [System.Net.Dns]::GetHostEntry($IPAddress)
 #
