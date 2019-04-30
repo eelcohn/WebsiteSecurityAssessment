@@ -307,17 +307,32 @@ function mozillaObservatory($site) {
 ###############################################################################
 
 function getDNSRecords($site) {
-	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - DNS lookup..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
-
 	try {
 		$DNSResult = [System.Net.Dns]::GetHostAddress($site)
 #		$DNSResult = Invoke-RestMethod `
 #			-Uri ($RIPEDNSAPIUrl + '?resource=' + $site)
 	} catch [System.Net.Webexception] {
-		if ($_.CategoryInfo.Category -eq "ResourceUnavailable") {
-			$DnsRecords = "No DNS record"
-		} else {
-			return ('ERROR' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
+		switch ($_.CategoryInfo.Category) {
+			# No DNS record was found
+			"ResourceUnavailable" {
+				return ("N/A")
+			}
+
+			# The operation timed out
+			"OperationTimeout" {
+				return ("OperationTimeout")
+			}
+
+			# All other errors
+			default {
+				Write-Host('Resolve-DnsName returned an error while trying to resolve ' + $site)
+				Write-Host('  ErrorCode: 0x{0:X8}' -f $_.Exception.ErrorCode)
+
+				Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
+				Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
+				Write-Host('  StatusCode: ' + $_.Exception.Response.StatusCode.Value__)
+				Write-Host('  StatusDescription: ' + $_.Exception.Response.StatusDescription)
+			}
 		}
 	}
 
@@ -329,8 +344,6 @@ function getDNSRecords($site) {
 ###############################################################################
 
 function reverseDNSLookup($IPAddress) {
-	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Reverse DNS lookup..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
-
 	try {
 #		$DnsRecords = [System.Net.Dns]::GetHostEntry($IPAddress)
 #
@@ -341,13 +354,25 @@ function reverseDNSLookup($IPAddress) {
 			-DnsOnly `
 			-ErrorAction Stop
 	} catch [Exception] {
-		if ($_.CategoryInfo.Category -eq "ResourceUnavailable") {
-			return ("N/A")
-		} else {
-			Write-Host('Resolve-DnsName returned an error while trying to resolve ' + $site)
-			Write-Host('  ErrorCode: ' + $_.Exception.ErrorCode)
-			Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
-			Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
+		switch ($_.CategoryInfo.Category) {
+			# No reverse DNS record was found
+			"ResourceUnavailable" {
+				return ("N/A")
+			}
+
+			# The operation timed out
+			"OperationTimeout" {
+				return ("OperationTimeout")
+			}
+
+			# All other errors
+			default {
+				Write-Host('Resolve-DnsName returned an error while trying to resolve ' + $site)
+				Write-Host('  ErrorCode: 0x{0:X8}' -f $_.Exception.ErrorCode)
+
+				Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
+				Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
+			}
 		}
 	}
 
