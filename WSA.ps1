@@ -14,7 +14,7 @@ $altNamesFile				= "WSA-debug.UnknownHostsFound-" + (Get-Date -UFormat %Y%m%d) +
 $HeadersDebugFile			= "WSA-debug.Headers-" + (Get-Date -UFormat %Y%m%d) + ".csv"
 $Delimiter					= "`t"
 $MaxRequests				= 30
-$TimeOut					= 10
+$TimeOut					= 5
 $UseProxy					= $true
 
 # Global system variables
@@ -969,15 +969,6 @@ foreach ($CurrentHost in $Hosts) {
 							# Analyze the HTTP methods
 							$WebsiteSuggestions += analyzeHTTPMethods("https://" + $CurrentHost)
 
-							# Analyze the HTTP methods
-							if ($SSLResult.certs[0].dnsCaa) {
-								if ($SSLResult.certs[0].dnsCaa = $false) {
-									$WebsiteSuggestions += "`nAdd a DNS CAA record"
-								}
-							} else {
-								$WebsiteSuggestions += "`nAdd a DNS CAA record"
-							}
-
 							# Get the certificate's keysize, validation dates and issuer
 							$CertificateKeySize = $SSLResult.certs[0].keyStrength
 							$CertificateDateBefore = ((Get-Date("1/1/1970")).addSeconds([int64]$SSLResult.certs[0].notBefore / 1000).ToLocalTime()).ToString("yyyy-MM-dd")
@@ -990,37 +981,9 @@ foreach ($CurrentHost in $Hosts) {
 								# Get RIPE ASN prefix for the IP address (hosting provider info)
 								$PrefixResult = getPrefix ($endpoint.ipAddress)
 
-								# Check if the certificate is of an Extended Validation-type
-								if ($endpoint.details.cert.validationType -eq "E") {
-									$CertificateType = "EV"
-								} else {
-									$CertificateType = "-"
-								}
-
 								# Check if the SSLLabs test returned any warnings
 								if ($endpoint.hasWarnings -eq "true") {
 									$Suggestions = $Suggestions + "Fix all warnings from the SSL Labs test`n"
-								}
-
-								# Check for warnings on common DH primes
-								if ($endpoint.details.dhUsesKnownPrimes -ne "0") {
-									$Suggestions += "Replace common DH primes with custom DH primes`n"
-								}
-								if ($endpoint.details.dhYsReuse -eq "true") {
-									$Suggestions += "Replace DH public server primes with custom primes`n"
-								}
-								if ($endpoint.details.ecdhParameterReuse -eq "true") {
-									$Suggestions += "Replace ECDH public server primes with custom primes`n"
-								}
-
-								# Check if domain is on HSTS preload list
-								if ($endpoint.details.hstsPolicy.preload -ne "true") {
-									$Suggestions += "Add this domain to the HSTS preload list`n"
-								}
-
-								# Check for OCSP stapling
-								if ($endpoint.details.ocspStapling -ne "true") {
-									$Suggestions += "Enable OCSP stapling`n"
 								}
 
 								# Perform reverse DNS lookup for the IP address
@@ -1028,6 +991,43 @@ foreach ($CurrentHost in $Hosts) {
 
 								switch ($endpoint.statusMessage) {
 									"Ready" {
+										# Check for a DNS CAA record
+										if ($SSLResult.certs[0].dnsCaa) {
+											if ($SSLResult.certs[0].dnsCaa = $false) {
+												$Suggestions += "Add a DNS CAA record`n"
+											}
+										} else {
+											$Suggestions += "Add a DNS CAA record`n"
+										}
+
+										# Check if the certificate is of an Extended Validation-type
+										if ($endpoint.details.cert.validationType -eq "E") {
+											$CertificateType = "EV"
+										} else {
+											$CertificateType = "-"
+										}
+
+										# Check for warnings on common DH primes
+										if ($endpoint.details.dhUsesKnownPrimes -ne "0") {
+											$Suggestions += "Replace common DH primes with custom DH primes`n"
+										}
+										if ($endpoint.details.dhYsReuse -eq "true") {
+											$Suggestions += "Replace DH public server primes with custom primes`n"
+										}
+										if ($endpoint.details.ecdhParameterReuse -eq "true") {
+											$Suggestions += "Replace ECDH public server primes with custom primes`n"
+										}
+
+										# Check if domain is on HSTS preload list
+										if ($endpoint.details.hstsPolicy.preload -ne "true") {
+											$Suggestions += "Add this domain to the HSTS preload list`n"
+										}
+
+										# Check for OCSP stapling
+										if ($endpoint.details.ocspStapling -ne "true") {
+											$Suggestions += "Enable OCSP stapling`n"
+										}
+
 										if ($endpoint.grade -ne $endpoint.gradeTrustIgnored) {
 											$SSLLabsGrade = $endpoint.grade + ' (' + $endpoint.gradeTrustIgnored + ')'
 										} else {
