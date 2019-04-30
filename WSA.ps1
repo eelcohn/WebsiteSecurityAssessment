@@ -385,7 +385,7 @@ function reverseDNSLookup($IPAddress) {
 			}
 		}
 
-		$ReverseDNSCache.Rows.Add($ipAddress, $ReverseDnsRecords.NameHost) | Out-Null
+		$ReverseDNSCache.Rows.Add($IPAddress, $ReverseDnsRecords.NameHost) | Out-Null
 		return ($ReverseDnsRecords.NameHost)
 	} else {
 		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing reverse DNS lookup for " + $IPAddress + ": found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
