@@ -884,7 +884,7 @@ foreach ($CurrentHost in $Hosts) {
 							if ($SecondsToWait -gt 30) {
 								$SecondsToWait = 30
 							}
-							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs endpoint " + $EndpointsDone + "/" + $SSLResult.endpoints.Count + " (" + $CurrentEndpoint + ": " + $CurrentDetails): pausing for " + $SecondsToWait + " seconds..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs endpoint " + $EndpointsDone + "/" + $SSLResult.endpoints.Count + " (" + $CurrentEndpoint + ": " + $CurrentDetails + "): pausing for " + $SecondsToWait + " seconds..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 							# Ease down requests on the SSLLabs API
 							Start-Sleep -s $SecondsToWait
