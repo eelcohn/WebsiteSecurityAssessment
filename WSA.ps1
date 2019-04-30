@@ -363,16 +363,17 @@ function reverseDNSLookup($IPAddress) {
 				-Type A_AAAA `
 				-DnsOnly `
 				-ErrorAction Stop
+			$Result = $ReverseDnsRecords.NameHost
 		} catch [Exception] {
 			switch ($_.CategoryInfo.Category) {
 				# No reverse DNS record was found
 				"ResourceUnavailable" {
-					return ("N/A")
+					$Result = "N/A"
 				}
 
 				# The operation timed out
 				"OperationTimeout" {
-					return ("Timeout")
+					$Result = "Timeout"
 				}
 
 				# All other errors
@@ -381,12 +382,12 @@ function reverseDNSLookup($IPAddress) {
 					Write-Host('  ErrorCode: 0x{0:X8}' -f $_.Exception.ErrorCode)
 					Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
 					Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
+					$Result = "Error"
 				}
 			}
 		}
 
-		$ReverseDNSCache.Rows.Add($IPAddress, $ReverseDnsRecords.NameHost) | Out-Null
-		return ($ReverseDnsRecords.NameHost)
+		$ReverseDNSCache.Rows.Add($IPAddress, $Result) | Out-Null
 	} else {
 		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing reverse DNS lookup for " + $IPAddress + ": found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
