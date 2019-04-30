@@ -32,6 +32,9 @@ $WhoisCache.Columns.Add("Whois", [string]) | Out-Null
 $RipeCache					= New-Object System.Data.DataTable
 $RipeCache.Columns.Add("IPAddress", [string]) | Out-Null
 $RipeCache.Columns.Add("ASNHolder", [string]) | Out-Null
+$ReverseDnsCache					= New-Object System.Data.DataTable
+$ReverseDnsCache.Columns.Add("IPAddress", [string]) | Out-Null
+$ReverseDnsCache.Columns.Add("Hostname", [string]) | Out-Null
 $GoodHTTPHeaders = @("Accept-Ranges",
 					"Access-Control-Allow-Origin",
 					"Access-Control-Allow-Methods",
@@ -173,7 +176,7 @@ function whois($site) {
 			}
 		}
 	} else {
-		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - WHOIS found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Performing WHOIS lookup for "+ $site + ": found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
 	return $Result
@@ -184,8 +187,9 @@ function whois($site) {
 ###############################################################################
 
 function getPrefix($ipAddress) {
-	# Check if we've already got a WHOIS result for this site
+	# Check if a RIPE prefix for this IP address is available in the cache
 	$Result = ($RipeCache | Where-Object IPAddress -eq "$ipAddress").ASNHolder
+
 	if ($Result -eq $null) {
 		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Retrieving RIPE prefix for " + $ipAddress + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 		try {
@@ -205,7 +209,7 @@ function getPrefix($ipAddress) {
 			return ("N/A")
 		}
 	} else {
-		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - RIPE prefix for "+ $ipAddress + " found in cache " + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Retrieving RIPE prefix for "+ $ipAddress + ": found in cache " + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
 	return $Result
@@ -329,7 +333,6 @@ function getDNSRecords($site) {
 			default {
 				Write-Host('Resolve-DnsName returned an error while trying to resolve ' + $site)
 				Write-Host('  ErrorCode: 0x{0:X8}' -f $_.Exception.ErrorCode)
-
 				Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
 				Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
 				Write-Host('  StatusCode: ' + $_.Exception.Response.StatusCode.Value__)
@@ -346,42 +349,47 @@ function getDNSRecords($site) {
 ###############################################################################
 
 function reverseDNSLookup($IPAddress) {
-	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing reverse DNS lookup for " + $IPAddress + "..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+	# Check if reverse DNS for this IP address is available in the cache
+	$Result = ($ReverseDNSCache | Where-Object IPAddress -eq "$IPAddress").Hostname
 
-	try {
-#		$ReverseDnsRecords = [System.Net.Dns]::GetHostEntry($IPAddress)
-#
-#		$ReverseDnsRecords = [System.Net.Dns]::GetHostByAddress($IPAddress)
-		$ReverseDnsRecords = Resolve-DnsName `
-			-Name $IPAddress `
-			-Type A_AAAA `
-			-DnsOnly `
-			-ErrorAction Stop
-	} catch [Exception] {
-		switch ($_.CategoryInfo.Category) {
-			# No reverse DNS record was found
-			"ResourceUnavailable" {
-				return ("N/A")
-			}
+	if ($Result -eq $null) {
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing reverse DNS lookup for " + $IPAddress + "..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
-			# The operation timed out
-			"OperationTimeout" {
-				return ("Timeout")
-			}
+		try {
+			$ReverseDnsRecords = Resolve-DnsName `
+				-Name $IPAddress `
+				-Type A_AAAA `
+				-DnsOnly `
+				-ErrorAction Stop
+		} catch [Exception] {
+			switch ($_.CategoryInfo.Category) {
+				# No reverse DNS record was found
+				"ResourceUnavailable" {
+					return ("N/A")
+				}
 
-			# All other errors
-			default {
-				Write-Host('Resolve-DnsName returned an error while trying to resolve ' + $site)
-				Write-Host('  ErrorCode: 0x{0:X8}' -f $_.Exception.ErrorCode)
+				# The operation timed out
+				"OperationTimeout" {
+					return ("Timeout")
+				}
 
-				Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
-				Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
+				# All other errors
+				default {
+					Write-Host('Resolve-DnsName returned an error while trying to resolve ' + $IPAddress)
+					Write-Host('  ErrorCode: 0x{0:X8}' -f $_.Exception.ErrorCode)
+					Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
+					Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
+				}
 			}
 		}
+
+		$ReverseDNSCache.Rows.Add($ipAddress, $ReverseDnsRecords.NameHost) | Out-Null
+		return ($ReverseDnsRecords.NameHost)
+	} else {
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing reverse DNS lookup for " + $IPAddress + ": found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
-#	return($ReverseDnsRecords.Hostname)
-	return($ReverseDnsRecords.NameHost)
+	return $Result
 }
 
 ###############################################################################
@@ -956,6 +964,22 @@ foreach ($CurrentHost in $Hosts) {
 								# Check if the SSLLabs test returned any warnings
 								if ($endpoint.hasWarnings -eq "true") {
 									$Suggestions = $Suggestions + "Fix all warnings from the SSL Labs test`n"
+								}
+
+								# Check for warnings on common DH primes
+								if ($endpoint.details.dhUsesKnownPrimes -ne "0") {
+									$Suggestions += "Replace common DH primes with custom DH primes`n"
+								}
+								if ($endpoint.details.dhYsReuse -eq "true") {
+									$Suggestions += "Replace DH public server primes with custom primes`n"
+								}
+								if ($endpoint.details.ecdhParameterReuse -eq "true") {
+									$Suggestions += "Replace ECDH public server primes with custom primes`n"
+								}
+
+								# Check for OCSP stapling
+								if ($endpoint.details.ocspStapling -ne "true") {
+									$Suggestions += "Enable OCSP stapling`n"
 								}
 
 								# Perform reverse DNS lookup for the IP address
