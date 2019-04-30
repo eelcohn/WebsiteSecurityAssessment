@@ -543,8 +543,10 @@ function analyzeWebsite($site) {
 	}
 
 	# Check if 'Public-Key-Pins' header is set
-	if ($Result.Headers.'Public-Key-Pins' -eq $null) {
-		$ReturnString += "Set HTTP header 'Public-Key-Pins'`n"
+	if ($HTTPPrefix -eq "https") {
+		if ($Result.Headers.'Public-Key-Pins' -eq $null) {
+			$ReturnString += "Set HTTP header 'Public-Key-Pins'`n"
+		}
 	}
 
 	# Check if 'Strict-Transport-Security' header is set correctly
