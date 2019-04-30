@@ -1026,40 +1026,61 @@ foreach ($CurrentHost in $Hosts) {
 								# Perform reverse DNS lookup for the IP address
 								$rDNS = reverseDNSLookup($endpoint.ipAddress)
 
-								if ($endpoint.statusMessage -eq "Ready") {
-
-									if ($endpoint.grade -ne $endpoint.gradeTrustIgnored) {
-										$SSLLabsGrade = $endpoint.grade + ' (' + $endpoint.gradeTrustIgnored + ')'
-									} else {
-										$SSLLabsGrade = $endpoint.grade
+								switch ($endpoint.statusMessage) {
+									"Ready" {
+										if ($endpoint.grade -ne $endpoint.gradeTrustIgnored) {
+											$SSLLabsGrade = $endpoint.grade + ' (' + $endpoint.gradeTrustIgnored + ')'
+										} else {
+											$SSLLabsGrade = $endpoint.grade
+										}
+										'"https"' + $Delimiter + `
+										'"' + $CurrentHost + '"' + $Delimiter + `
+										'"' + $endpoint.ipAddress + '"' + $Delimiter + `
+										'"' + $rDNS + '"' + $Delimiter + `
+										'"' + $SSLLabsGrade + '"' + $Delimiter + `
+										'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+										'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
+										'"' + $PrefixResult + '"' + $Delimiter + `
+										'"' + $whoisResult + '"' + $Delimiter + `
+										'"' + $CertificateIssuer + '"' + $Delimiter + `
+										'"' + $CertificateDateAfter + '"' + $Delimiter + `
+										'"' + $Suggestions + $WebsiteSuggestions + '"' `
+											| Out-File -Append $ResultsFile
 									}
-									'"https"' + $Delimiter + `
-									'"' + $CurrentHost + '"' + $Delimiter + `
-									'"' + $endpoint.ipAddress + '"' + $Delimiter + `
-									'"' + $rDNS + '"' + $Delimiter + `
-									'"' + $SSLLabsGrade + '"' + $Delimiter + `
-									'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
-									'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
-									'"' + $PrefixResult + '"' + $Delimiter + `
-									'"' + $whoisResult + '"' + $Delimiter + `
-									'"' + $CertificateIssuer + '"' + $Delimiter + `
-									'"' + $CertificateDateAfter + '"' + $Delimiter + `
-									'"' + $Suggestions + $WebsiteSuggestions + '"' `
-										| Out-File -Append $ResultsFile
-								} else {
-									'"https"' + $Delimiter + `
-									'"' + $CurrentHost + '"' + $Delimiter + `
-									'"' + $endpoint.ipAddress + '"' + $Delimiter + `
-									'"' + $rDNS + '"' + $Delimiter + `
-									'"' + $endpoint.statusMessage + '"' + $Delimiter + `
-									'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
-									'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
-									'"' + $PrefixResult + '"' + $Delimiter + `
-									'"' + $whoisResult + '"' + $Delimiter + `
-									'"N/A"' + $Delimiter + `
-									'"N/A"' + $Delimiter + `
-									'"' + $Suggestions + $WebsiteSuggestions + '"' `
-										| Out-File -Append $ResultsFile
+
+									"Unable to connect to the server" {
+										$Suggestions = "Enable HTTPS`n" + $Suggestions
+
+										'"https"' + $Delimiter + `
+										'"' + $CurrentHost + '"' + $Delimiter + `
+										'"' + $endpoint.ipAddress + '"' + $Delimiter + `
+										'"' + $rDNS + '"' + $Delimiter + `
+										'"N/A"' + $Delimiter + `
+										'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+										'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
+										'"' + $PrefixResult + '"' + $Delimiter + `
+										'"' + $whoisResult + '"' + $Delimiter + `
+										'"N/A"' + $Delimiter + `
+										'"N/A"' + $Delimiter + `
+										'"' + $Suggestions + $WebsiteSuggestions + '"' `
+											| Out-File -Append $ResultsFile
+										}
+
+									default {
+										'"https"' + $Delimiter + `
+										'"' + $CurrentHost + '"' + $Delimiter + `
+										'"' + $endpoint.ipAddress + '"' + $Delimiter + `
+										'"' + $rDNS + '"' + $Delimiter + `
+										'"' + $endpoint.statusMessage + '"' + $Delimiter + `
+										'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+										'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
+										'"' + $PrefixResult + '"' + $Delimiter + `
+										'"' + $whoisResult + '"' + $Delimiter + `
+										'"N/A"' + $Delimiter + `
+										'"N/A"' + $Delimiter + `
+										'"' + $Suggestions + $WebsiteSuggestions + '"' `
+											| Out-File -Append $ResultsFile
+									}
 								}
 
 								# Check for any unknown hostnames in the certificate's altname
