@@ -137,7 +137,7 @@ function whois($site) {
 	# Check if we've already got a WHOIS result for this site
 	$Result = ($WhoisCache | Where-Object Domain -eq "$site").Whois
 	if ($Result -eq $null) {
-		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Performing WHOIS lookup..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing WHOIS lookup for "+ $site + "..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 		try {
 			$WHOISResult = Invoke-WebRequest `
 				-ErrorAction Ignore `
@@ -173,7 +173,7 @@ function whois($site) {
 			}
 		}
 	} else {
-		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - WHOIS found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - WHOIS found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
 	return $Result
@@ -187,7 +187,7 @@ function getPrefix($ipAddress) {
 	# Check if we've already got a WHOIS result for this site
 	$Result = ($RipeCache | Where-Object IPAddress -eq "$ipAddress").ASNHolder
 	if ($Result -eq $null) {
-		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - Retrieving RIPE prefix for " + $ipAddress + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Retrieving RIPE prefix for " + $ipAddress + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 		try {
 			$PrefixResult = Invoke-RestMethod `
 				-Uri ($RIPEPrefixAPIUrl + '?resource=' + $ipAddress)
@@ -205,7 +205,7 @@ function getPrefix($ipAddress) {
 			return ("N/A")
 		}
 	} else {
-		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - RIPE prefix for "+ $ipAddress + " found in cache " + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - RIPE prefix for "+ $ipAddress + " found in cache " + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
 	return $Result
@@ -247,7 +247,7 @@ function securityheaders($site) {
 ###############################################################################
 
 function mozillaObservatory($site) {
-	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Getting Mozilla HTTP Observatory grading..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Getting Mozilla HTTP Observatory grading..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 	# Initiate the Mozilla HTTP Observatory scan by making a POST request
 	try {
@@ -273,7 +273,7 @@ function mozillaObservatory($site) {
 
 		# Display a message if the scan hasn't finished yet
 		if ($Result.state -ne "FINISHED") {
-			Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Getting Mozilla HTTP Observatory grading: attempt " + $j + " of " + $MaxRequests + " (pausing for 5 seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+			Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Getting Mozilla HTTP Observatory grading: attempt " + $j + " of " + $MaxRequests + " (pausing for 5 seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 			Start-Sleep -s 5
 
 			# Get the result from Mozilla HTTP Observatory by making a GET request
@@ -307,7 +307,7 @@ function mozillaObservatory($site) {
 ###############################################################################
 
 function getDNSRecords($site) {
-	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - DNS lookup..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Performing DNS lookup..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 	try {
 		$DNSResult = [System.Net.Dns]::GetHostAddress($site)
@@ -322,7 +322,7 @@ function getDNSRecords($site) {
 
 			# The operation timed out
 			"OperationTimeout" {
-				return ("OperationTimeout")
+				return ("Timeout")
 			}
 
 			# All other errors
@@ -346,13 +346,13 @@ function getDNSRecords($site) {
 ###############################################################################
 
 function reverseDNSLookup($IPAddress) {
-	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Reverse DNS lookup..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing reverse DNS lookup for " + $IPAddress + "..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 	try {
-#		$DnsRecords = [System.Net.Dns]::GetHostEntry($IPAddress)
+#		$ReverseDnsRecords = [System.Net.Dns]::GetHostEntry($IPAddress)
 #
-#		$DnsRecords = [System.Net.Dns]::GetHostByAddress($IPAddress)
-		$DnsRecords = Resolve-DnsName `
+#		$ReverseDnsRecords = [System.Net.Dns]::GetHostByAddress($IPAddress)
+		$ReverseDnsRecords = Resolve-DnsName `
 			-Name $IPAddress `
 			-Type A_AAAA `
 			-DnsOnly `
@@ -366,7 +366,7 @@ function reverseDNSLookup($IPAddress) {
 
 			# The operation timed out
 			"OperationTimeout" {
-				return ("OperationTimeout")
+				return ("Timeout")
 			}
 
 			# All other errors
@@ -380,8 +380,8 @@ function reverseDNSLookup($IPAddress) {
 		}
 	}
 
-	return($DnsRecords.Hostname)
-#	return($DnsRecords.NameHost)
+#	return($ReverseDnsRecords.Hostname)
+	return($ReverseDnsRecords.NameHost)
 }
 
 ###############################################################################
@@ -389,7 +389,7 @@ function reverseDNSLookup($IPAddress) {
 ###############################################################################
 
 function loadWebsite($site) {
-	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Loading website content..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Loading website content..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 	try {
 		$Result = Invoke-WebRequest `
@@ -591,7 +591,7 @@ function analyzeWebsite($site) {
 ###############################################################################
 
 function analyzeHTTPMethods($site) {
-	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Analyzing HTTP methods..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Analyzing HTTP methods..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 	$ReturnString = ''
 
@@ -627,7 +627,7 @@ function initiateScans() {
 	$i = 0
 	foreach ($CurrentHost in $Hosts) {
 		$wait = 1
-		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: Initiating scan..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs: Initiating scan..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 		try {
 			$TmpResult = Invoke-RestMethod `
 				-Uri ($SSLLabsAPIUrl + '?host=' + $CurrentHost + '&all=done&hideResults=true&ignoreMismatch=on')
@@ -636,7 +636,7 @@ function initiateScans() {
 				$wait = 15
 			} else {
 				if ($_.CategoryInfo.Category -eq "InvalidOperation") {
-					Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: site is temporarily down, retrying..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+					Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs: site is temporarily down, retrying..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 					$wait = 15
 				} else {
 					Write-Host ('`nSSLLabs returned an error: ' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
@@ -744,7 +744,7 @@ foreach ($CurrentHost in $Hosts) {
 
 	foreach ($HTTPPrefix in $Protocols) {
 		# Perform a reverse DNS lookup for the hostname
-#		$rdns = reverseDNSLookup
+#		$rdns = reverseDNSLookup($CurrentHost)
 
 		switch ($HTTPPrefix) {
 			# Check the hostname via HTTP
@@ -786,13 +786,13 @@ foreach ($CurrentHost in $Hosts) {
 
 				# Create a Do-While loop for retrieving the SSLLabs result
 				Do {
-					Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: Sending request..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+					Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs: Sending request..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 					try {
 						$SSLResult = Invoke-RestMethod `
 							-Uri ($SSLLabsAPIUrl + '?host=' + $CurrentHost + '&all=done&hideResults=true&ignoreMismatch=on')
 					} catch [System.Net.Webexception] {
 						if ($_.CategoryInfo.Category -eq "InvalidOperation") {
-							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: site is temporarily down, retrying..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs: site is temporarily down, retrying..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 						} else {
 							Write-Host ('`nSSLLabs returned an error: ' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
 						}
@@ -801,7 +801,7 @@ foreach ($CurrentHost in $Hosts) {
 					switch ($SSLResult.status) {
 						# Status = resolving DNS names
 						"DNS" {
-							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: Resolving DNS names, please wait..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs: Resolving DNS names, please wait..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 							# Wait 5 seconds before next try
 							Start-Sleep -s 5
@@ -840,7 +840,7 @@ foreach ($CurrentHost in $Hosts) {
 							if ($SecondsToWait -gt 30) {
 								$SecondsToWait = 30
 							}
-							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs endpoint " + $EndpointsDone + "/" + $SSLResult.endpoints.Count + " (" + $CurrentEndpoint + "): pausing for " + $SecondsToWait + " seconds..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs endpoint " + $EndpointsDone + "/" + $SSLResult.endpoints.Count + " (" + $CurrentEndpoint + "): pausing for " + $SecondsToWait + " seconds..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 							# Ease down requests on the SSLLabs API
 							Start-Sleep -s $SecondsToWait
@@ -851,13 +851,13 @@ foreach ($CurrentHost in $Hosts) {
 						# Status = SSL Labs scan could not finish correctly
 						"ERROR" {
 							$ScanReady = $true
-							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: Scan error (" + $SSLResult.statusMessage + ")" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs: Scan error (" + $SSLResult.statusMessage + ")" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 							# Get WHOIS information for domain
 							$whoisResult = whois($CurrentHost)
 
 							# Get grading from securityheaders.io
-							$SecurityHeadersGrade = securityheaders($CurrentHost)
+							$SecurityHeadersGrade = securityheaders("https://" + $CurrentHost)
 
 							# Get grading from Mozilla HTTP Observatory
 							$MozillaObservatoryResult = mozillaObservatory($CurrentHost)
@@ -901,14 +901,14 @@ foreach ($CurrentHost in $Hosts) {
 									| Out-File -Append $ResultsFile
 							}
 
-							Write-Host ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - Done" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft)))
+							Write-Host ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - Done" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft)))
 							break
 						}
 
 						# Status = SSL Labs scan finished
 						"READY" {
 							$ScanReady = $true
-							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: scan ready" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs: scan ready" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 							# Get WHOIS information for domain
 							$whoisResult = whois($CurrentHost)
@@ -957,7 +957,9 @@ foreach ($CurrentHost in $Hosts) {
 								if ($endpoint.hasWarnings -eq "true") {
 									$Suggestions = $Suggestions + "Fix all warnings from the SSL Labs test`n"
 								}
-$rDNS = reverseDNSLookup($endpoint.ipAddress)
+
+								# Perform reverse DNS lookup for the IP address
+								$rDNS = reverseDNSLookup($endpoint.ipAddress)
 
 								if ($endpoint.statusMessage -eq "Ready") {
 
@@ -1004,12 +1006,12 @@ $rDNS = reverseDNSLookup($endpoint.ipAddress)
 									}
 								}
 							}
-							Write-Host ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - Done" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft)))
+							Write-Host ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - Done" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft)))
 							break
 						}
 
 						default {
-							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $CurrentHost + " - SSLLabs: Unknown status: " + $SSLResult.status + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs: Unknown status: " + $SSLResult.status + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 							break
 						}
 					}
