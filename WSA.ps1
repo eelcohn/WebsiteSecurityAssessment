@@ -277,7 +277,7 @@ function mozillaObservatory($site) {
 
 		# Display a message if the scan hasn't finished yet
 		if ($Result.state -ne "FINISHED") {
-			Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Getting Mozilla HTTP Observatory grading: attempt " + $j + " of " + $MaxRequests + " (pausing for 5 seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+			Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Getting Mozilla HTTP Observatory grading: attempt " + $j + " of " + $MaxRequests + " (pausing for 5 seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 			Start-Sleep -s 5
 
 			# Get the result from Mozilla HTTP Observatory by making a GET request
