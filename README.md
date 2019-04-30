@@ -4,7 +4,7 @@ This PowerShell script will automatically assess the SSLLabs, SecurityHeaders.io
 The script will read all the sites from the Hosts.txt file. Add your websites to the Hosts.txt file, place the Hosts.txt file in the same path as the script, and run the script. The script will output it's findings to a CSV file, which you can import into Microsoft Excel or LibreOffice Calc.
 
 The CSV file contains the following information:
-* Protocol: HTTP or HTTPS; currently only HTTPS is supported
+* Protocol: HTTP or HTTPS; currently HTTPS is supported, and HTTP is in beta
 * Hostname: this is the hostname (or URL) read from the Hosts.txt file
 * IP address: this is the IP address (or addresses) associated with the hostname
 * Reverse DNS: this is the reverse-DNS lookup on the IP address associated with the hostname
