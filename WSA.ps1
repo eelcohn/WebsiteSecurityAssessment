@@ -591,7 +591,7 @@ function analyzeWebsite($site) {
 ###############################################################################
 
 function analyzeHTTPMethods($site) {
-	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Analyzing HTTP methods..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+	Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Analyzing HTTP methods..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 	$ReturnString = ''
 
