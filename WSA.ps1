@@ -277,7 +277,7 @@ function mozillaObservatory($site) {
 
 		# Display a message if the scan hasn't finished yet
 		if ($Result.state -ne "FINISHED") {
-			Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $site + " - Getting Mozilla HTTP Observatory grading: attempt " + $j + " of " + $MaxRequests + " (pausing for 5 seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+			Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] " + $HTTPPrefix + "://" + $site + " - Getting Mozilla HTTP Observatory grading: attempt " + $j + " of " + $MaxRequests + " (pausing for 5 seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 			Start-Sleep -s 5
 
 			# Get the result from Mozilla HTTP Observatory by making a GET request
@@ -413,6 +413,9 @@ function loadWebsite($site) {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
 				return ("")
+			}
+			if ($_.Exception.Response.StatusCode.Value__ -eq "502") {
+				return ("N/A")
 			} else {
 				return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
 			}
@@ -443,6 +446,9 @@ function analyzeWebsite($site) {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
 				return ("")
+			}
+			if ($_.Exception.Response.StatusCode.Value__ -eq 502) {
+				return ("N/A")
 			} else {
 				return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
 			}
@@ -762,36 +768,53 @@ foreach ($CurrentHost in $Hosts) {
 				# Get WHOIS information for domain
 				$whoisResult = whois($CurrentHost)
 
-				# Get grading from securityheaders.io
-				$SecurityHeadersGrade = securityheaders("http://" + $CurrentHost)
+				if ($DNSResults -ne "N/A") {
+					# Get grading from securityheaders.io
+					$SecurityHeadersGrade = securityheaders("http://" + $CurrentHost)
 
-				# Get grading from Mozilla HTTP Observatory
-				$MozillaObservatoryResult = mozillaObservatory($CurrentHost)
+					# Get grading from Mozilla HTTP Observatory
+					$MozillaObservatoryResult = mozillaObservatory($CurrentHost)
 
-				# Analyze the website content
-				$WebsiteSuggestions = analyzeWebsite("http://" + $CurrentHost)
+					# Analyze the website content
+					$WebsiteSuggestions = analyzeWebsite("http://" + $CurrentHost)
 
-				foreach ($endpoint in $DNSResults) {
-					# Get RIPE ASN prefix for the IP address (hosting provider info)
-					$PrefixResult = getPrefix ($endpoint)
+					foreach ($endpoint in $DNSResults) {
+						# Get RIPE ASN prefix for the IP address (hosting provider info)
+						$PrefixResult = getPrefix ($endpoint)
 
-					# Perform reverse DNS lookup for the IP address
-					$rDNS = reverseDNSLookup($endpoint)
+						# Perform reverse DNS lookup for the IP address
+						$rDNS = reverseDNSLookup($endpoint)
 
-					# Write results to output file
-					'"http"' + $Delimiter + `
-					'"' + $CurrentHost + '"' + $Delimiter + `
-					'"' + $endpoint + '"' + $Delimiter + `
-					'"' + $rDNS + '"' + $Delimiter + `
-					'"N/A"' + $Delimiter + `
-					'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
-					'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
-					'"' + $PrefixResult + '"' + $Delimiter + `
-					'"' + $whoisResult + '"' + $Delimiter + `
-					'"N/A"' + $Delimiter + `
-					'"N/A"' + $Delimiter + `
-					'"' + $WebsiteSuggestions + '"' `
-						| Out-File -Append $ResultsFile
+						# Write results to output file
+						'"http"' + $Delimiter + `
+						'"' + $CurrentHost + '"' + $Delimiter + `
+						'"' + $endpoint + '"' + $Delimiter + `
+						'"' + $rDNS + '"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+						'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
+						'"' + $PrefixResult + '"' + $Delimiter + `
+						'"' + $whoisResult + '"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"' + $WebsiteSuggestions + '"' `
+							| Out-File -Append $ResultsFile
+					}
+				} else {
+						# Write results to output file
+						'"http"' + $Delimiter + `
+						'"' + $CurrentHost + '"' + $Delimiter + `
+						'"No DNS record"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"' + $whoisResult + '"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"N/A"' + $Delimiter + `
+						'"' + $WebsiteSuggestions + '"' `
+							| Out-File -Append $ResultsFile
 				}
 
 				break
@@ -889,7 +912,7 @@ foreach ($CurrentHost in $Hosts) {
 							# Check if no DNS record was found
 							if ($SSLResult.statusMessage -eq 'Unable to resolve domain name') {
 								# Write results to output file
-								'"N/A"' + $Delimiter + `
+								'"https"' + $Delimiter + `
 								'"' + $CurrentHost + '"' + $Delimiter + `
 								'"No DNS record"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
@@ -904,7 +927,7 @@ foreach ($CurrentHost in $Hosts) {
 									| Out-File -Append $ResultsFile
 							} else {
 								# Write results to output file
-								'"N/A"' + $Delimiter + `
+								'"https"' + $Delimiter + `
 								'"' + $CurrentHost + '"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
@@ -936,7 +959,7 @@ foreach ($CurrentHost in $Hosts) {
 
 							# Get grading from Mozilla HTTP Observatory
 							$MozillaObservatoryResult = mozillaObservatory($CurrentHost)
-				
+
 							# Analyze the website content
 							$WebsiteSuggestions = analyzeWebsite("https://" + $CurrentHost)
 
