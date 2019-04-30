@@ -17,7 +17,7 @@ $TimeOut					= 10
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20190429"
+$WSAVersion					= "v20190430"
 $Protocols					= @("https")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
@@ -328,18 +328,22 @@ function getDNSRecords($site) {
 
 function reverseDNSLookup($IPAddress) {
 	try {
-		$DnsRecords = [System.Net.Dns]::GetHostEntry($IPAddress)
+#		$DnsRecords = [System.Net.Dns]::GetHostEntry($IPAddress)
 #
 #		$DnsRecords = [System.Net.Dns]::GetHostByAddress($IPAddress)
-#		$DnsRecords = Resolve-DnsName `
-#			$site `
-#			-Type A_AAAA `
-#			-DnsOnly
+		$DnsRecords = Resolve-DnsName `
+			-Name $IPAddress `
+			-Type A_AAAA `
+			-DnsOnly `
+			-ErrorAction Stop
 	} catch [Exception] {
-		if ($_.Exception.ErrorCode -eq 11004) {
+		if ($_.CategoryInfo.Category -eq "ResourceUnavailable") {
 			return ("N/A")
 		} else {
-			Write-Host("Resolve-DnsName returned an error while trying to resolve " + $site + " --> " + $_.CategoryInfo)
+			Write-Host('Resolve-DnsName returned an error while trying to resolve ' + $site)
+			Write-Host('  ErrorCode: ' + $_.Exception.ErrorCode)
+			Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
+			Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
 		}
 	}
 
