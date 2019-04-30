@@ -867,6 +867,7 @@ foreach ($CurrentHost in $Hosts) {
 								# Find the IP address of the current endpoint being processed
 								if ($endpoint.statusMessage -eq "In progress") {
 										$CurrentEndpoint = $endpoint.ipAddress
+										$CurrentDetails = $endpoint.statusDetailsMessage
 								}
 								# Find the endpoint with the longest wait time
 								if ($SecondsToWait -le $endpoint.eta) {
@@ -883,7 +884,7 @@ foreach ($CurrentHost in $Hosts) {
 							if ($SecondsToWait -gt 30) {
 								$SecondsToWait = 30
 							}
-							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs endpoint " + $EndpointsDone + "/" + $SSLResult.endpoints.Count + " (" + $CurrentEndpoint + "): pausing for " + $SecondsToWait + " seconds..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs endpoint " + $EndpointsDone + "/" + $SSLResult.endpoints.Count + " (" + $CurrentEndpoint + ": " + $CurrentDetails): pausing for " + $SecondsToWait + " seconds..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 							# Ease down requests on the SSLLabs API
 							Start-Sleep -s $SecondsToWait
@@ -1010,6 +1011,11 @@ foreach ($CurrentHost in $Hosts) {
 								}
 								if ($endpoint.details.ecdhParameterReuse -eq "true") {
 									$Suggestions += "Replace ECDH public server primes with custom primes`n"
+								}
+
+								# Check if domain is on HSTS preload list
+								if ($endpoint.details.hstsPolicy.preload -ne "true") {
+									$Suggestions += "Add this domain to the HSTS preload list`n"
 								}
 
 								# Check for OCSP stapling
