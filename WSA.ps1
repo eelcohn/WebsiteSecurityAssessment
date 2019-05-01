@@ -124,8 +124,8 @@ function print_help() {
 	Write-Host ("	$0 [ options ]")
 	Write-Host ("")
 	Write-Host ("Options:")
-	Write-Host ("	-h,		--help								 Print this help message")
-	Write-Host ("	-d <url>, --domain <url>						 Specify target domain")
+	Write-Host ("	-h,        --help								 Print this help message")
+	Write-Host ("	-d <url>,  --domain <url>						 Specify target domain")
 	Write-Host ("	-i <file>, --input <file>						 Specify file with target domains (default: Hosts.txt)")
 }
 
@@ -152,7 +152,7 @@ function whois($site) {
 		# Convert the JSON response
 		$WHOISResult = ConvertFrom-Json -InputObject $WHOISResult.Content
 
-		$Result = "Error"
+		$Result = "Unable to get WHOIS data"
 		if ($WHOISREsult.error -ne "false") {
 			if ($WHOISREsult.whois -eq $null) {
 				$Result = "N/A"
@@ -166,7 +166,7 @@ function whois($site) {
 							$Result = (($WHOISResult.whois -Split("<br />") | Select-Object -Index ($i + 1)).Trim())
 						}
 						if ($Result -eq "") {
-							$Result = "Error"
+							$Result = "Unable to get WHOIS data"
 						} else {
 							$WhoisCache.Rows.Add($site, $Result) | Out-Null
 						}
@@ -227,7 +227,7 @@ function securityheaders($site) {
 		$Result = Invoke-WebRequest `
 			-MaximumRedirection 0 `
 			-ErrorAction Ignore `
-			-Uri ($SecurityHeadersAPIUrl + '?q=' + $site + '&hide=on')
+			-Uri ($SecurityHeadersAPIUrl + '?q=' + $site + '&hide=on&followRedirects=off')
 	} catch [System.Net.Webexception] {
 		return ('ERROR' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
 	}
@@ -272,7 +272,11 @@ function mozillaObservatory($site) {
 
 	Do {
 		If ($Result.error) {
-			return ($Result.error)
+			If ($Result.error -eq "site down") {
+				return ("N/A")
+			} else {
+				return ($Result.error)
+			}
 		}
 
 		# Display a message if the scan hasn't finished yet
@@ -343,7 +347,11 @@ function DNSLookup($site) {
 		}
 	}
 
-	return ($DnsRecords.IPAddress)
+	if ($DnsRecords.IPAddress -ne $null) {
+		return ($DnsRecords.IPAddress)
+	} else {
+		return "N/A"
+	}
 }
 
 ###############################################################################
@@ -382,7 +390,7 @@ function reverseDNSLookup($IPAddress) {
 					Write-Host('  ErrorCode: 0x{0:X8}' -f $_.Exception.ErrorCode)
 					Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
 					Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
-					$Result = "Error"
+					$Result = "Unable to perform reverse DNS"
 				}
 			}
 		}
@@ -444,7 +452,7 @@ function analyzeWebsite($site) {
 	} catch [System.Net.Webexception] {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
-				return ("")
+				return ("???")
 			}
 			if ($_.Exception.Response.StatusCode.Value__ -eq 502) {
 				return ("N/A")
@@ -452,7 +460,7 @@ function analyzeWebsite($site) {
 				return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
 			}
 		} else {
-			return ('Unknown error')
+			return ("Unable to analyze website content")
 		}
 	}
 
@@ -477,24 +485,24 @@ function analyzeWebsite($site) {
 	# Analyze the cookies
 	foreach ($Cookie in $Result.BaseResponse.Cookies) {
 		if (($Cookie.Secure -ne "True") -Or ($Cookie.HttpOnly -ne "True")) {
-			$ReturnString = $ReturnString + "Set the "
+			$ReturnString += "Set the "
 			# Cookie should have the Secure attribute set
 			if ($Cookie.Secure -ne "True") {
-				$ReturnString = $ReturnString + "Secure"
+				$ReturnString += "Secure"
 			}
 			if (($Cookie.Secure -ne "True") -And ($Cookie.HttpOnly -ne "True")) {
-				$ReturnString = $ReturnString + " and the "
+				$ReturnString += " and the "
 			}
 			# Cookie should have the HttpOnly attribute set
 			if ($Cookie.HttpOnly -ne "True") {
-				$ReturnString = $ReturnString + "HttpOnly"
+				$ReturnString += "HttpOnly"
 			}
-			$ReturnString = $ReturnString + " attribute(s) for cookie with name " + $Cookie.Name + "`n"
+			$ReturnString += " attribute(s) for cookie with name " + $Cookie.Name + "`n"
 		}
 
 		# Cookie should not be valid for all subdomains
 		if ($Cookie.Domain.StartsWith(".")) {
-			$ReturnString = $ReturnString + "Set a specific domain for cookie with name " + $Cookie.Name + "(" + $Cookie.Domain + ")`n"
+			$ReturnString += "Set a specific domain for cookie with name " + $Cookie.Name + "(" + $Cookie.Domain + ")`n"
 		}
 	}
 
@@ -594,12 +602,7 @@ function analyzeWebsite($site) {
 		}
 	}
 
-	if ($ReturnString -ne "") {
-		return ($ReturnString.TrimEnd("`n"))
-	} else {
-		return ("None!")
-	}
-	return ("Error")
+	return ($ReturnString)
 }
 
 ###############################################################################
@@ -633,7 +636,7 @@ function analyzeHTTPMethods($site) {
 		}
 	}
 
-	return ($ReturnString.TrimEnd("`n"))
+	return ($ReturnString)
 }
 
 ###############################################################################
@@ -777,10 +780,16 @@ foreach ($CurrentHost in $Hosts) {
 					$MozillaObservatoryResult = mozillaObservatory($CurrentHost)
 
 					# Analyze the website content
-					$WebsiteSuggestions = analyzeWebsite("http://" + $CurrentHost)
+					$Suggestions = analyzeWebsite("http://" + $CurrentHost)
 
 					# Analyze the HTTP methods
-					$WebsiteSuggestions += analyzeHTTPMethods("http://" + $CurrentHost)
+					$Suggestions += analyzeHTTPMethods("http://" + $CurrentHost)
+
+					if ($Suggestions -ne "") {
+						$Suggestions = $Suggestions.TrimEnd("`n")
+					} else {
+						$Suggestions = "None!"
+					}
 
 					foreach ($endpoint in $DNSResults) {
 						# Get RIPE ASN prefix for the IP address (hosting provider info)
@@ -801,7 +810,7 @@ foreach ($CurrentHost in $Hosts) {
 						'"' + $whoisResult + '"' + $Delimiter + `
 						'"N/A"' + $Delimiter + `
 						'"N/A"' + $Delimiter + `
-						'"' + $WebsiteSuggestions.TrimEnd('`n') + '"' `
+						'"' + $Suggestions + '"' `
 							| Out-File -Append $ResultsFile
 					}
 				} else {
@@ -886,7 +895,7 @@ foreach ($CurrentHost in $Hosts) {
 							if ($SecondsToWait -gt 30) {
 								$SecondsToWait = 30
 							}
-							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs endpoint " + $EndpointsDone + "/" + $SSLResult.endpoints.Count + " (" + $CurrentEndpoint + ": " + $CurrentDetails + "): pausing for " + $SecondsToWait + " seconds..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs endpoint " + $EndpointsDone + "/" + $SSLResult.endpoints.Count + " (" + $CurrentEndpoint + ") " + $CurrentDetails + ": pausing for " + $SecondsToWait + " seconds..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 							# Ease down requests on the SSLLabs API
 							Start-Sleep -s $SecondsToWait
@@ -902,18 +911,6 @@ foreach ($CurrentHost in $Hosts) {
 							# Get WHOIS information for domain
 							$whoisResult = whois($CurrentHost)
 
-							# Get grading from securityheaders.io
-							$SecurityHeadersGrade = securityheaders("https://" + $CurrentHost)
-
-							# Get grading from Mozilla HTTP Observatory
-							$MozillaObservatoryResult = mozillaObservatory($CurrentHost)
-
-							# Analyze the headers
-							$WebsiteSuggestions = analyzeWebsite("https://" + $CurrentHost)
-
-							# Analyze the HTTP methods
-							$WebsiteSuggestions += analyzeHTTPMethods("https://" + $CurrentHost)
-
 							# Check if no DNS record was found
 							if ($SSLResult.statusMessage -eq 'Unable to resolve domain name') {
 								# Write results to output file
@@ -922,15 +919,33 @@ foreach ($CurrentHost in $Hosts) {
 								'"No DNS record"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
-								'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"' + $whoisResult + '"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
-								'"' + $WebsiteSuggestions.TrimEnd('`n') + '"' `
+								'"N/A"' `
 									| Out-File -Append $ResultsFile
 							} else {
+								# Get grading from securityheaders.io
+								$SecurityHeadersGrade = securityheaders("https://" + $CurrentHost)
+
+								# Get grading from Mozilla HTTP Observatory
+								$MozillaObservatoryResult = mozillaObservatory($CurrentHost)
+
+								# Analyze the headers
+								$Suggestions = analyzeWebsite("https://" + $CurrentHost)
+
+								# Analyze the HTTP methods
+								$Suggestions += analyzeHTTPMethods("https://" + $CurrentHost)
+
+								if ($Suggestions -ne "") {
+									$Suggestions = $Suggestions.TrimEnd("`n")
+								} else {
+									$Suggestions = "None!"
+								}
+
 								# Write results to output file
 								'"https"' + $Delimiter + `
 								'"' + $CurrentHost + '"' + $Delimiter + `
@@ -943,7 +958,7 @@ foreach ($CurrentHost in $Hosts) {
 								'"' + $whoisResult + '"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
-								'"' + $WebsiteSuggestions.TrimEnd('`n') + '"' `
+								'"' + $WebsiteSuggestions + '"' `
 									| Out-File -Append $ResultsFile
 							}
 
@@ -985,7 +1000,7 @@ foreach ($CurrentHost in $Hosts) {
 
 								# Check if the SSLLabs test returned any warnings
 								if ($endpoint.hasWarnings -eq "true") {
-									$Suggestions = $Suggestions + "Fix all warnings from the SSL Labs test`n"
+									$Suggestions += "Fix all warnings from the SSL Labs test`n"
 								}
 
 								# Perform reverse DNS lookup for the IP address
@@ -1030,6 +1045,13 @@ foreach ($CurrentHost in $Hosts) {
 											$Suggestions += "Enable OCSP stapling`n"
 										}
 
+										$Suggestions += $WebsiteSuggestions
+										if ($Suggestions -ne "") {
+											$Suggestions = $Suggestions.TrimEnd("`n")
+										} else {
+											$Suggestions = "None!"
+										}
+
 										if ($endpoint.grade -ne $endpoint.gradeTrustIgnored) {
 											$SSLLabsGrade = $endpoint.grade + ' (' + $endpoint.gradeTrustIgnored + ')'
 										} else {
@@ -1046,12 +1068,15 @@ foreach ($CurrentHost in $Hosts) {
 										'"' + $whoisResult + '"' + $Delimiter + `
 										'"' + $CertificateIssuer + '"' + $Delimiter + `
 										'"' + $CertificateDateAfter + '"' + $Delimiter + `
-										'"' + ($Suggestions + $WebsiteSuggestions).TrimEnd('`n') + '"' `
+										'"' + $Suggestions + '"' `
 											| Out-File -Append $ResultsFile
+
+										break
 									}
 
-									"Unable to connect to the server" {
-										$Suggestions = "Enable HTTPS`n" + $Suggestions
+									{ "Unable to connect to the server" -or
+									"No secure protocols supported" } {
+										$Suggestions = ("Enable HTTPS`n" + $Suggestions + $WebsiteSuggestions).TrimEnd("`n")
 
 										'"https"' + $Delimiter + `
 										'"' + $CurrentHost + '"' + $Delimiter + `
@@ -1064,11 +1089,20 @@ foreach ($CurrentHost in $Hosts) {
 										'"' + $whoisResult + '"' + $Delimiter + `
 										'"N/A"' + $Delimiter + `
 										'"N/A"' + $Delimiter + `
-										'"' + ($Suggestions + $WebsiteSuggestions).TrimEnd('`n') + '"' `
+										'"' + $Suggestions + '"' `
 											| Out-File -Append $ResultsFile
-										}
+
+										break
+									}
 
 									default {
+										$Suggestions += $WebsiteSuggestions
+										if ($Suggestions -ne "") {
+											$Suggestions = $Suggestions.TrimEnd("`n")
+										} else {
+											$Suggestions = "None!"
+										}
+
 										'"https"' + $Delimiter + `
 										'"' + $CurrentHost + '"' + $Delimiter + `
 										'"' + $endpoint.ipAddress + '"' + $Delimiter + `
@@ -1080,8 +1114,10 @@ foreach ($CurrentHost in $Hosts) {
 										'"' + $whoisResult + '"' + $Delimiter + `
 										'"N/A"' + $Delimiter + `
 										'"N/A"' + $Delimiter + `
-										'"' + ($Suggestions + $WebsiteSuggestions).TrimEnd('`n') + '"' `
+										'"' + $Suggestions + '"' `
 											| Out-File -Append $ResultsFile
+
+										break
 									}
 								}
 
@@ -1100,6 +1136,7 @@ foreach ($CurrentHost in $Hosts) {
 
 						default {
 							Write-Host -NoNewLine ("[" + $i + "/" + $Hosts.count + "] https://" + $CurrentHost + " - SSLLabs: Unknown status: " + $SSLResult.status + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+
 							break
 						}
 					}
