@@ -1,4 +1,6 @@
 v20190501:
+* Added observatory cache
+* Added additional scanning on common prefixes for domains (like www.)
 * WHOIS request via HTTPS
 * Bugfixes
 
