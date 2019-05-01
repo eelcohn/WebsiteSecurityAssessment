@@ -18,7 +18,7 @@ $TimeOut					= 5
 $UseProxy					= $true
 
 # Global system variables
-$WSAVersion					= "v20190430"
+$WSAVersion					= "v20190501"
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl		= "https://securityheaders.com/"
 $MozillaObservatoryAPIUrl	= "https://http-observatory.security.mozilla.org/api/v1/analyze"
@@ -803,7 +803,7 @@ foreach ($CurrentHost in $Hosts) {
 						'"' + $whoisResult + '"' + $Delimiter + `
 						'"N/A"' + $Delimiter + `
 						'"N/A"' + $Delimiter + `
-						'"' + $WebsiteSuggestions + '"' `
+						'"' + $WebsiteSuggestions.TrimEnd('`n') + '"' `
 							| Out-File -Append $ResultsFile
 					}
 				} else {
@@ -819,7 +819,7 @@ foreach ($CurrentHost in $Hosts) {
 						'"' + $whoisResult + '"' + $Delimiter + `
 						'"N/A"' + $Delimiter + `
 						'"N/A"' + $Delimiter + `
-						'"' + $WebsiteSuggestions + '"' `
+						'"' + $WebsiteSuggestions.TrimEnd('`n') + '"' `
 							| Out-File -Append $ResultsFile
 				}
 
@@ -930,7 +930,7 @@ foreach ($CurrentHost in $Hosts) {
 								'"' + $whoisResult + '"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
-								'"' + $WebsiteSuggestions + '"' `
+								'"' + $WebsiteSuggestions.TrimEnd('`n') + '"' `
 									| Out-File -Append $ResultsFile
 							} else {
 								# Write results to output file
@@ -945,7 +945,7 @@ foreach ($CurrentHost in $Hosts) {
 								'"' + $whoisResult + '"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
 								'"N/A"' + $Delimiter + `
-								'"' + $WebsiteSuggestions + '"' `
+								'"' + $WebsiteSuggestions.TrimEnd('`n') + '"' `
 									| Out-File -Append $ResultsFile
 							}
 
@@ -1048,7 +1048,7 @@ foreach ($CurrentHost in $Hosts) {
 										'"' + $whoisResult + '"' + $Delimiter + `
 										'"' + $CertificateIssuer + '"' + $Delimiter + `
 										'"' + $CertificateDateAfter + '"' + $Delimiter + `
-										'"' + $Suggestions + $WebsiteSuggestions + '"' `
+										'"' + ($Suggestions + $WebsiteSuggestions).TrimEnd('`n') + '"' `
 											| Out-File -Append $ResultsFile
 									}
 
@@ -1066,7 +1066,7 @@ foreach ($CurrentHost in $Hosts) {
 										'"' + $whoisResult + '"' + $Delimiter + `
 										'"N/A"' + $Delimiter + `
 										'"N/A"' + $Delimiter + `
-										'"' + $Suggestions + $WebsiteSuggestions + '"' `
+										'"' + ($Suggestions + $WebsiteSuggestions).TrimEnd('`n') + '"' `
 											| Out-File -Append $ResultsFile
 										}
 
@@ -1082,7 +1082,7 @@ foreach ($CurrentHost in $Hosts) {
 										'"' + $whoisResult + '"' + $Delimiter + `
 										'"N/A"' + $Delimiter + `
 										'"N/A"' + $Delimiter + `
-										'"' + $Suggestions + $WebsiteSuggestions + '"' `
+										'"' + ($Suggestions + $WebsiteSuggestions).TrimEnd('`n') + '"' `
 											| Out-File -Append $ResultsFile
 									}
 								}
