@@ -1,3 +1,7 @@
+v20190501:
+* WHOIS request via HTTPS
+* Bugfixes
+
 v20190430:
 * Fixed reverseDNSLookup() error handling
 * Added reverse DNS lookup cache
