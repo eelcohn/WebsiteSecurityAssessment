@@ -25,7 +25,7 @@ $MozillaObservatoryAPIUrl	= "https://http-observatory.security.mozilla.org/api/v
 $RIPEWhoisAPIUrl			= "https://stat.ripe.net/data/whois/data.json"
 $RIPEPrefixAPIUrl			= "https://stat.ripe.net/data/prefix-overview/data.json"
 $RIPEDNSAPIUrl				= "https://stat.ripe.net/data/dns-chain/data.json"
-$WhoIsUrl					= "http://dotnul.com/api/whois/"
+$WhoIsUrl					= "https://dotnul.com/api/whois/"
 $WhoisCache					= New-Object System.Data.DataTable
 $WhoisCache.Columns.Add("Domain", [string]) | Out-Null
 $WhoisCache.Columns.Add("Whois", [string]) | Out-Null
@@ -408,8 +408,7 @@ function loadWebsite($site) {
 			-ErrorAction Ignore `
 			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
 			-Uri $site `
-			-TimeoutSec $TimeOut `
-			-SessionVariable mysession
+			-TimeoutSec $TimeOut
 	} catch [System.Net.Webexception] {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
@@ -442,7 +441,6 @@ function analyzeWebsite($site) {
 			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
 			-Uri $site `
 			-TimeoutSec $TimeOut
-#			-SessionVariable mysession
 	} catch [System.Net.Webexception] {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
@@ -478,7 +476,6 @@ function analyzeWebsite($site) {
 
 	# Analyze the cookies
 	foreach ($Cookie in $Result.BaseResponse.Cookies) {
-#	foreach ($Cookie in $mysession.Cookies.GetCookies($site)) {
 		if (($Cookie.Secure -ne "True") -Or ($Cookie.HttpOnly -ne "True")) {
 			$ReturnString = $ReturnString + "Set the "
 			# Cookie should have the Secure attribute set
@@ -624,6 +621,7 @@ function analyzeHTTPMethods($site) {
 				-Uri $site `
 				-Method $BadMethod `
 				-TimeoutSec $TimeOut
+# CustomMethod is available from PowerShell 6.0.0 and above
 #				-CustomMethod $BadMethod `
 		} catch [System.Net.Webexception] {
 			if ($_.CategoryInfo.Category -ne "InvalidOperation") {
@@ -819,7 +817,7 @@ foreach ($CurrentHost in $Hosts) {
 						'"' + $whoisResult + '"' + $Delimiter + `
 						'"N/A"' + $Delimiter + `
 						'"N/A"' + $Delimiter + `
-						'"' + $WebsiteSuggestions.TrimEnd('`n') + '"' `
+						'"N/A"' `
 							| Out-File -Append $ResultsFile
 				}
 
