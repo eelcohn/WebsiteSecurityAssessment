@@ -23,7 +23,7 @@ $UseCommonPrefixes			= $true
 # -----------------------------------------------------------------------------
 # Global system variables
 # -----------------------------------------------------------------------------
-$WSAVersion				= "v20190501"
+$WSAVersion				= "v20190502"
 $CommonPrefixes				= "www"
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl			= "https://securityheaders.com/"
@@ -437,6 +437,7 @@ function loadWebsite($site) {
 			-MaximumRedirection 0 `
 			-ErrorAction Ignore `
 			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
+			-SkipCertificateCheck `
 			-Uri $site `
 			-TimeoutSec $TimeOut
 	} catch [System.Net.Webexception] {
@@ -469,6 +470,7 @@ function analyzeWebsite($site) {
 			-MaximumRedirection 0 `
 			-ErrorAction Ignore `
 			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
+			-SkipCertificateCheck `
 			-Uri $site `
 			-TimeoutSec $TimeOut
 	} catch [System.Net.Webexception] {
@@ -643,6 +645,7 @@ function analyzeHTTPMethods($site) {
 				-MaximumRedirection 0 `
 				-ErrorAction Ignore `
 				-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
+				-SkipCertificateCheck `
 				-Uri $site `
 				-Method $BadMethod `
 				-TimeoutSec $TimeOut
@@ -878,8 +881,8 @@ ForEach ($Domain in $Hosts) {
 					$ScanReady = $false
 
 					# Create a Do-While loop for retrieving the SSLLabs result
+					Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] https://" + $CurrentHost + " - SSLLabs: Sending request..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 					Do {
-						Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] https://" + $CurrentHost + " - SSLLabs: Sending request..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 						try {
 							$SSLResult = Invoke-RestMethod `
 								-Uri ($SSLLabsAPIUrl + '?host=' + $CurrentHost + '&all=done&hideResults=true&ignoreMismatch=on')
