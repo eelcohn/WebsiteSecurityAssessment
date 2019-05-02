@@ -437,9 +437,10 @@ function loadWebsite($site) {
 			-MaximumRedirection 0 `
 			-ErrorAction Ignore `
 			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
-			-SkipCertificateCheck `
 			-Uri $site `
 			-TimeoutSec $TimeOut
+# SkipCertificateCheck is only available on PowerShell 6.0.0 and above
+#			-SkipCertificateCheck `
 	} catch [System.Net.Webexception] {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
@@ -470,9 +471,10 @@ function analyzeWebsite($site) {
 			-MaximumRedirection 0 `
 			-ErrorAction Ignore `
 			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
-			-SkipCertificateCheck `
 			-Uri $site `
 			-TimeoutSec $TimeOut
+# SkipCertificateCheck is only available on PowerShell 6.0.0 and above
+#			-SkipCertificateCheck `
 	} catch [System.Net.Webexception] {
 		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
@@ -645,10 +647,11 @@ function analyzeHTTPMethods($site) {
 				-MaximumRedirection 0 `
 				-ErrorAction Ignore `
 				-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
-				-SkipCertificateCheck `
 				-Uri $site `
 				-Method $BadMethod `
 				-TimeoutSec $TimeOut
+# SkipCertificateCheck is only available on PowerShell 6.0.0 and above
+#			-SkipCertificateCheck `
 # CustomMethod is available from PowerShell 6.0.0 and above
 #				-CustomMethod $BadMethod `
 		} catch [System.Net.Webexception] {
