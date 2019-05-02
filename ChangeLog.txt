@@ -1,5 +1,8 @@
+v20190502:
+* Allow content scan for sites with untrusted certificates
+
 v20190501:
-* Added observatory cache
+* Added Mozilla observatory cache
 * Added additional scanning on common prefixes for domains (like www.)
 * WHOIS request via HTTPS
 * Bugfixes
