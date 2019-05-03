@@ -1,3 +1,6 @@
+v20190503:
+* Fixed issue where rDNS would return both PTR and CNAME record
+
 v20190502:
 * Preliminary added: Allow content scan for sites with untrusted certificates
 
