@@ -23,7 +23,7 @@ $UseCommonPrefixes			= $true
 # -----------------------------------------------------------------------------
 # Global system variables
 # -----------------------------------------------------------------------------
-$WSAVersion				= "v20190503"
+$WSAVersion				= "v20190502"
 $CommonPrefixes				= "www"
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl			= "https://securityheaders.com/"
@@ -94,7 +94,9 @@ $BadHTTPHeaders = @("MicrosoftSharePointTeamServices",
 					"X-Generator",
 					"X-KoobooCMS-Version",
 					"X-MS-Server-Fqdn",
-					"X-Mod-Pagespeed",
+					"X-Mod-Pagespeed","
+					"X-ORACLE-DMS-ECID",
+					"X-ORACLE-DMS-RID",
 					"X-Powered-By",
 					"X-Powered-By-Plesk",
 					"X-Served-By",
