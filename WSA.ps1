@@ -94,7 +94,7 @@ $BadHTTPHeaders = @("MicrosoftSharePointTeamServices",
 					"X-Generator",
 					"X-KoobooCMS-Version",
 					"X-MS-Server-Fqdn",
-					"X-Mod-Pagespeed","
+					"X-Mod-Pagespeed",
 					"X-ORACLE-DMS-ECID",
 					"X-ORACLE-DMS-RID",
 					"X-Powered-By",
