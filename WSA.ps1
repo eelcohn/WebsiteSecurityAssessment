@@ -393,7 +393,7 @@ function reverseDNSLookup($IPAddress) {
 				-Type A_AAAA `
 				-DnsOnly `
 				-ErrorAction Stop
-			$Result = $ReverseDnsRecords.NameHost
+			$Result = ($rDNS | Where-Object Type -eq "PTR").NameHost
 		} catch [Exception] {
 			switch ($_.CategoryInfo.Category) {
 				# No reverse DNS record was found
@@ -651,7 +651,7 @@ function analyzeHTTPMethods($site) {
 				-Method $BadMethod `
 				-TimeoutSec $TimeOut
 # SkipCertificateCheck is only available on PowerShell 6.0.0 and above
-#			-SkipCertificateCheck `
+#				-SkipCertificateCheck `
 # CustomMethod is available from PowerShell 6.0.0 and above
 #				-CustomMethod $BadMethod `
 		} catch [System.Net.Webexception] {
