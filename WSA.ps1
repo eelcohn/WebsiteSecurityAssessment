@@ -23,8 +23,8 @@ $UseCommonPrefixes			= $true
 # -----------------------------------------------------------------------------
 # Global system variables
 # -----------------------------------------------------------------------------
-$WSAVersion				= "v20190502"
-$CommonPrefixes				= "www"
+$WSAVersion				= "v20190508"
+$CommonPrefixes				= @("www")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl			= "https://securityheaders.com/"
 $MozillaObservatoryAPIUrl		= "https://http-observatory.security.mozilla.org/api/v1/analyze"
@@ -395,7 +395,7 @@ function reverseDNSLookup($IPAddress) {
 				-Type A_AAAA `
 				-DnsOnly `
 				-ErrorAction Stop
-			$Result = ($rDNS | Where-Object Type -eq "PTR").NameHost
+			$Result = ($ReverseDnsRecords | Where-Object Type -eq "PTR").NameHost
 		} catch [Exception] {
 			switch ($_.CategoryInfo.Category) {
 				# No reverse DNS record was found
