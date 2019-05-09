@@ -1,3 +1,10 @@
+v20190509:
+* Added X-Backend-Server to list of known bad headers
+* Improved error handling
+* Added ETA (Estimated Time of Arrival)
+* Fixed analysis of Content-Security-Policy header
+* Fixed detection of unknown hosts found in certificate's altnames
+
 v20190503:
 * Fixed issue where rDNS would return both PTR and CNAME record
 * Added X-ORACLE-DMS-ECID and X-ORACLE-DMS-RID to list of known bad headers
