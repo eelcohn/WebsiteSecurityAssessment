@@ -17,7 +17,7 @@ $HeadersDebugFile			= "WSA-debug.Headers-" + (Get-Date -UFormat %Y%m%d) + ".csv"
 $Delimiter				= "`t"
 $MaxRequests				= 30
 $TimeOut				= 5
-$UseProxy				= $false
+$UseProxy				= $True
 $UseCommonPrefixes			= $True
 
 # -----------------------------------------------------------------------------
