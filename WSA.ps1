@@ -17,13 +17,13 @@ $HeadersDebugFile			= "WSA-debug.Headers-" + (Get-Date -UFormat %Y%m%d) + ".csv"
 $Delimiter				= "`t"
 $MaxRequests				= 30
 $TimeOut				= 5
-$UseProxy				= $true
-$UseCommonPrefixes			= $true
+$UseProxy				= $false
+$UseCommonPrefixes			= $True
 
 # -----------------------------------------------------------------------------
 # Global system variables
 # -----------------------------------------------------------------------------
-$WSAVersion				= "v20190508"
+$WSAVersion				= "v20190509"
 $CommonPrefixes				= @("www")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl			= "https://securityheaders.com/"
@@ -44,79 +44,83 @@ $ObservatoryCache.Columns.Add("Rating", [string]) | Out-Null
 $ReverseDnsCache = New-Object System.Data.DataTable
 $ReverseDnsCache.Columns.Add("IPAddress", [string]) | Out-Null
 $ReverseDnsCache.Columns.Add("Hostname", [string]) | Out-Null
-$GoodHTTPHeaders = @("Accept-Ranges",
-					"Access-Control-Allow-Origin",
-					"Access-Control-Allow-Methods",
-					"Access-Control-Allow-Headers",
-					"Cache-Control",
-					"Connection",
-					"Content-Language",
-					"Content-Length",
-					"Content-Security-Policy",
-					"Content-Security-Policy-Report-Only",
-					"Content-Type",
-					"Date",
-					"Expect-CT",
-					"Expires",
-					"ETag",
-					"Feature-Policy",
-					"Keep-Alive",
-					"Last-Modified",
-					"Link",
-					"Location",
-					"P3p",
-					"Public-Key-Pins",
-					"Pragma",
-					"Referrer-Policy",
-					"Set-Cookie",
-					"Strict-Transport-Security"
-					"Transfer-Encoding",
-					"Vary",
-					"X-Content-Security-Policy",
-					"X-Content-Type-Options",
-					"X-Frame-Options",
-					"X-XSS-Protection")
-$BadHTTPHeaders = @("MicrosoftSharePointTeamServices",
-					"Server",
-					"Via",
-					"X-AH-Environment",
-					"X-App-Server",
-					"X-AspNet-Version",
-					"X-AspNetMvc-Version",
-					"X-Debug-Token",
-					"X-Debug-Token-Link",
-					"X-Drupal-Cache",
-					"X-Drupal-Cache-Contexts",
-					"X-Drupal-Cache-Tags",
-					"X-Drupal-Dynamic-Cache",
-					"X-Engine",
-					"X-FEServer",
-					"X-Generator",
-					"X-KoobooCMS-Version",
-					"X-MS-Server-Fqdn",
-					"X-Mod-Pagespeed",
-					"X-ORACLE-DMS-ECID",
-					"X-ORACLE-DMS-RID",
-					"X-Powered-By",
-					"X-Powered-By-Plesk",
-					"X-Served-By",
-					"X-Served-Via",
-					"X-Server-Powered-By",
-					"X-SharePointHealthScore",
-					"X-Varnish",
-					"X-Varnish-Cache",
-					"X-Varnish-Cache-Hits",
-					"X-Varnish-Cacheable",
-					"X-Varnish-Host")
-$BadHTTPMethods = @("DELETE",
-					"MERGE",
-					"OPTIONS",
-					"PATCH",
-					"PUT",
-					"TRACE")
-#					"CONNECT",
-#					"DEBUG",
-#					"TRACK",
+$GoodHTTPHeaders = @(
+	"Accept-Ranges",
+	"Access-Control-Allow-Origin",
+	"Access-Control-Allow-Methods",
+	"Access-Control-Allow-Headers",
+	"Cache-Control",
+	"Connection",
+	"Content-Language",
+	"Content-Length",
+	"Content-Security-Policy",
+	"Content-Security-Policy-Report-Only",
+	"Content-Type",
+	"Date",
+	"Expect-CT",
+	"Expires",
+	"ETag",
+	"Feature-Policy",
+	"Keep-Alive",
+	"Last-Modified",
+	"Link",
+	"Location",
+	"P3p",
+	"Public-Key-Pins",
+	"Pragma",
+	"Referrer-Policy",
+	"Set-Cookie",
+	"Strict-Transport-Security"
+	"Transfer-Encoding",
+	"Vary",
+	"X-Content-Security-Policy",
+	"X-Content-Type-Options",
+	"X-Frame-Options",
+	"X-XSS-Protection")
+$BadHTTPHeaders = @(
+	"MicrosoftSharePointTeamServices",
+	"Server",
+	"Via",
+	"X-AH-Environment",
+	"X-App-Server",
+	"X-AspNet-Version",
+	"X-AspNetMvc-Version",
+	"X-Backend-Server",
+	"X-Debug-Token",
+	"X-Debug-Token-Link",
+	"X-Drupal-Cache",
+	"X-Drupal-Cache-Contexts",
+	"X-Drupal-Cache-Tags",
+	"X-Drupal-Dynamic-Cache",
+	"X-Engine",
+	"X-FEServer",
+	"X-Generator",
+	"X-KoobooCMS-Version",
+	"X-MS-Server-Fqdn",
+	"X-Mod-Pagespeed",
+	"X-Oracle-DMS-ECID",
+	"X-Oracle-DMS-RID",
+	"X-Powered-By",
+	"X-Powered-By-Plesk",
+	"X-Served-By",
+	"X-Served-Via",
+	"X-Server-Powered-By",
+	"X-SharePointHealthScore",
+	"X-Varnish",
+	"X-Varnish-Cache",
+	"X-Varnish-Cache-Hits",
+	"X-Varnish-Cacheable",
+	"X-Varnish-Host")
+$BadHTTPMethods = @(
+#	"DELETE",
+#	"MERGE",
+	"OPTIONS",
+#	"PATCH",
+#	"PUT",
+	"TRACE")
+#	"CONNECT",
+#	"DEBUG",
+#	"TRACK",
 
 
 
@@ -143,6 +147,19 @@ function print_help() {
 }
 
 # -----------------------------------------------------------------------------
+# Show detailed error info
+# -----------------------------------------------------------------------------
+
+function showError($Title, $ExceptionStack) {
+	Write-Host($Title)
+	Write-Host('  ErrorCode: 0x{0:X8}' -f $ExceptionStack.Exception.ErrorCode)
+	Write-Host('  CategoryInfo: ' + $ExceptionStack.CategoryInfo)
+	Write-Host('  FullyQualifiedErrorId: ' + $ExceptionStack.FullyQualifiedErrorId)
+	Write-Host('  StatusCode: ' + $ExceptionStack.Exception.Response.StatusCode.Value__)
+	Write-Host('  StatusDescription: ' + $ExceptionStack.Exception.Response.StatusDescription)
+}
+
+# -----------------------------------------------------------------------------
 # Get WHOIS record for domain name
 # -----------------------------------------------------------------------------
 
@@ -159,6 +176,7 @@ function whois($site) {
 				-ErrorAction Ignore `
 				-Uri ($WhoIsUrl + $site)
 		} catch [System.Net.Webexception] {
+			showError('Whois(): Invoke-WebRequest returned an error while processing ' + $site, $_)
 			return ('ERROR' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
 		}
 
@@ -189,7 +207,7 @@ function whois($site) {
 			}
 		}
 	} else {
-		Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing WHOIS lookup for "+ $site + ": found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing WHOIS lookup for "+ $site + ": cached" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
 	return $Result
@@ -209,6 +227,7 @@ function getPrefix($ipAddress) {
 			$PrefixResult = Invoke-RestMethod `
 				-Uri ($RIPEPrefixAPIUrl + '?resource=' + $ipAddress)
 		} catch [System.Net.Webexception] {
+			showError('getPrefix(): Invoke-WebRequest returned an error while processing ' + $site, $_)
 			return ('ERROR' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
 		}
 
@@ -222,7 +241,7 @@ function getPrefix($ipAddress) {
 			return ("N/A")
 		}
 	} else {
-		Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Retrieving RIPE prefix for "+ $ipAddress + ": found in cache " + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Retrieving RIPE prefix for "+ $ipAddress + ": cached " + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
 	return $Result
@@ -242,6 +261,7 @@ function securityheaders($site) {
 			-ErrorAction Ignore `
 			-Uri ($SecurityHeadersAPIUrl + '?q=' + $site + '&hide=on&followRedirects=off')
 	} catch [System.Net.Webexception] {
+		showError('securityheaders(): Invoke-WebRequest returned an error while processing ' + $site, $_)
 		return ('ERROR' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
 	}
 
@@ -278,6 +298,7 @@ function mozillaObservatory($site) {
 				-Method POST `
 				-Uri ($MozillaObservatoryAPIUrl + '?host=' + $site + '&hidden=true')
 		} catch [System.Net.Webexception] {
+			showError('mozillaObservatory(): Invoke-WebRequest returned an error while processing ' + $site, $_)
 			return ('ERROR' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
 		}
 
@@ -286,6 +307,7 @@ function mozillaObservatory($site) {
 
 		# Ugly hack to prevent looping
 		$j = 1
+		$ObservatoryWait = 8
 
 		Do {
 			If ($Result.error) {
@@ -299,8 +321,8 @@ function mozillaObservatory($site) {
 
 			# Display a message if the scan hasn't finished yet
 			if ($Result.state -ne "FINISHED") {
-				Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $site + " - Getting Mozilla HTTP Observatory grading: attempt " + $j + " of " + $MaxRequests + " (pausing for 5 seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
-				Start-Sleep -s 5
+				Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $site + " - Getting Mozilla HTTP Observatory grading: attempt " + $j + " of " + $MaxRequests + " (pausing for " + $ObservatoryWait + " seconds)..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+				Start-Sleep -s $ObservatoryWait
 
 				# Get the result from Mozilla HTTP Observatory by making a GET request
 				$Result = Invoke-WebRequest `
@@ -328,7 +350,7 @@ function mozillaObservatory($site) {
 		# Return an error message if the scan didn't finish successfully
 		return ($Result.state)
 	} else {
-		Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Getting Mozilla HTTP Observatory grading: found in cache " + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Getting Mozilla HTTP Observatory grading: cached " + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
 	return $Result
@@ -361,12 +383,8 @@ function DNSLookup($site) {
 
 			# All other errors
 			default {
-				Write-Host('Resolve-DnsName returned an error while trying to resolve ' + $site)
-				Write-Host('  ErrorCode: 0x{0:X8}' -f $_.Exception.ErrorCode)
-				Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
-				Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
-				Write-Host('  StatusCode: ' + $_.Exception.Response.StatusCode.Value__)
-				Write-Host('  StatusDescription: ' + $_.Exception.Response.StatusDescription)
+				showError('DNSLookup(): Resolve-DnsName returned an error while processing ' + $site, $_)
+				return ("Error")
 			}
 		}
 	}
@@ -410,10 +428,7 @@ function reverseDNSLookup($IPAddress) {
 
 				# All other errors
 				default {
-					Write-Host('Resolve-DnsName returned an error while trying to resolve ' + $IPAddress)
-					Write-Host('  ErrorCode: 0x{0:X8}' -f $_.Exception.ErrorCode)
-					Write-Host('  CategoryInfo: ' + $_.CategoryInfo)
-					Write-Host('  FullyQualifiedErrorId: ' + $_.FullyQualifiedErrorId)
+					showError('reverseDNSLookup(): Resolve-DnsName returned an error while processing ' + $site, $_)
 					$Result = "Unable to perform reverse DNS"
 				}
 			}
@@ -421,7 +436,7 @@ function reverseDNSLookup($IPAddress) {
 
 		$ReverseDNSCache.Rows.Add($IPAddress, $Result) | Out-Null
 	} else {
-		Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing reverse DNS lookup for " + $IPAddress + ": found in cache" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+		Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] " + $HTTPPrefix + "://" + $CurrentHost + " - Performing reverse DNS lookup for " + $IPAddress + ": cached" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 	}
 
 	return $Result
@@ -444,17 +459,10 @@ function loadWebsite($site) {
 # SkipCertificateCheck is only available on PowerShell 6.0.0 and above
 #			-SkipCertificateCheck `
 	} catch [System.Net.Webexception] {
-		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
-			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
-				return ("")
-			}
-			if ($_.Exception.Response.StatusCode.Value__ -eq "502") {
-				return ("N/A")
-			} else {
-				return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
-			}
+		if ($_.Exception.HResult -eq 0x80131509) {
+			return ("N/A")
 		} else {
-			return ("Unknown error")
+			return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
 		}
 	}
 
@@ -478,17 +486,8 @@ function analyzeWebsite($site) {
 # SkipCertificateCheck is only available on PowerShell 6.0.0 and above
 #			-SkipCertificateCheck `
 	} catch [System.Net.Webexception] {
-		if ($_.CategoryInfo.Category -eq "InvalidOperation") {
-			if ($_.Exception.Response.StatusCode.Value__ -eq $null) {
-				return ("???")
-			}
-			if ($_.Exception.Response.StatusCode.Value__ -eq 502) {
-				return ("N/A")
-			} else {
-				return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
-			}
-		} else {
-			return ("Unable to analyze website content")
+		if ($_.Exception.HResult -ne 0x80131509) {
+			return ("Can't scan website: " + $_.Exception.Response.StatusCode.Value__ + " " + $_.Exception.Response.StatusDescription)
 		}
 	}
 
@@ -496,9 +495,9 @@ function analyzeWebsite($site) {
 	$Hdr = ''
 	ForEach ($Hdr in $Result.Headers.Keys) {
 	$HeaderRating = "Unknown"
-		if ($BadHTTPHeaders.Contains($Hdr)) {
+		if ($BadHTTPHeaders -Contains $Hdr) {
 			$HeaderRating = "Bad"
-		} elseif ($GoodHTTPHeaders.Contains($Hdr)) {
+		} elseif ($GoodHTTPHeaders -Contains $Hdr) {
 			$HeaderRating = "Good"
 		}
 		'"' + $site + '"' + $Delimiter + `
@@ -547,7 +546,7 @@ function analyzeWebsite($site) {
 	}
 
 	# Check if 'Content-Security-Policy' header is empty
-	if ($Result.Headers.'Content-Security-Policy' -eq "") {
+	if ($Result.Headers.'Content-Security-Policy' -eq $null) {
 		$ReturnString += "Set HTTP header 'Content-Security-Policy'`n"
 	}
 
@@ -689,7 +688,7 @@ function initiateScans() {
 					Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] https://" + $CurrentHost + " - SSLLabs: site is temporarily down, retrying..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 					$wait = 15
 				} else {
-					Write-Host ('`nSSLLabs returned an error: ' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
+					showError('initiateScans(): Invoke-WebRequest returned an error while processing ' + $site, $_)
 				}
 			}
 		}
@@ -779,7 +778,8 @@ $Hosts = Get-Content ($InputFile)
 $i = 0
 
 # Get the start time so we can calculate how long the script has run
-$StartTime = (Get-Date)
+$StartTime = (Get-Date).ToFileTime()
+$ETA = $null
 
 # To save time, send requests to SSLLabs for scanning the hostnames, but don't retrieve the results yet
 #initiateScans
@@ -805,7 +805,7 @@ ForEach ($Domain in $Hosts) {
 	ForEach($CurrentHost in $CurrentHosts) {
 		$SSLResult = ""
 		Write-Progress `
-			-Activity "Assessing security..." `
+			-Activity ("Assessing security..." + $ETA) `
 			-status "Current host: $CurrentHost" `
 			-percentComplete ($i++ / $TotalHosts*100)
 
@@ -895,7 +895,7 @@ ForEach ($Domain in $Hosts) {
 							if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 								Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] https://" + $CurrentHost + " - SSLLabs: site is temporarily down, retrying..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 							} else {
-								Write-Host ('`nSSLLabs returned an error: ' + $_.Exception.Response.StatusCode.Value__ + $_.Exception.Response.StatusDescription)
+								showError('main(): Invoke-WebRequest returned an error while processing ' + $CurrentHost, $_)
 							}
 						}
 
@@ -944,7 +944,7 @@ ForEach ($Domain in $Hosts) {
 								if ($SecondsToWait -gt 30) {
 									$SecondsToWait = 30
 								}
-								Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] https://" + $CurrentHost + " - SSLLabs endpoint " + $EndpointsDone + "/" + $SSLResult.endpoints.Count + " (" + $CurrentEndpoint + ") " + $CurrentDetails + ": pausing for " + $SecondsToWait + " seconds..." + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
+								Write-Host -NoNewLine ("[" + $i + "/" + $TotalHosts + "] https://" + $CurrentHost + " - SSLLabs [" + $EndpointsDone + "/" + $SSLResult.endpoints.Count + "] " + $CurrentDetails + " for endpoint " + $CurrentEndpoint + " (pausing for " + $SecondsToWait + " seconds)" + (" " * ([Console]::WindowWidth - [Console]::CursorLeft))+ "`r")
 
 								# Ease down requests on the SSLLabs API
 								Start-Sleep -s $SecondsToWait
@@ -1123,8 +1123,27 @@ ForEach ($Domain in $Hosts) {
 											break
 										}
 
-										{ "Unable to connect to the server" -or
-										"No secure protocols supported" } {
+										"Unable to connect to the server" {
+											$Suggestions = ($Suggestions + $WebsiteSuggestions).TrimEnd("`n")
+
+											'"https"' + $Delimiter + `
+											'"' + $CurrentHost + '"' + $Delimiter + `
+											'"' + $endpoint.ipAddress + '"' + $Delimiter + `
+											'"' + $rDNS + '"' + $Delimiter + `
+											'"N/A"' + $Delimiter + `
+											'"' + $SecurityHeadersGrade + '"' + $Delimiter + `
+											'"' + $MozillaObservatoryResult + '"' + $Delimiter + `
+											'"' + $PrefixResult + '"' + $Delimiter + `
+											'"' + $whoisResult + '"' + $Delimiter + `
+											'"N/A"' + $Delimiter + `
+											'"N/A"' + $Delimiter + `
+											'"' + $Suggestions + '"' `
+												| Out-File -Append $ResultsFile
+
+											break
+										}
+
+										"No secure protocols supported" {
 											$Suggestions = ("Enable HTTPS`n" + $Suggestions + $WebsiteSuggestions).TrimEnd("`n")
 
 											'"https"' + $Delimiter + `
@@ -1171,7 +1190,7 @@ ForEach ($Domain in $Hosts) {
 									}
 
 									# Check for any unknown hostnames in the certificate's altname
-									foreach ($altName in $endpoints.details.cert.altNames) {
+									foreach ($altName in $SSLResult.certs[0].altNames) {
 										if (!$Hosts.Contains($altName)) {
 											'"' + $CurrentHost + '"' + $Delimiter + `
 											'"' + $altName +'"' `
@@ -1197,7 +1216,9 @@ ForEach ($Domain in $Hosts) {
 				}
 			}
 		}
+		$TotalTime = ((Get-Date).ToFileTime() - $StartTime)
+		$ETA = "ETA: " + [DateTime]::FromFileTime((Get-Date).ToFileTime() + (($TotalTime / $i) * ($TotalHosts - $i)))
 	}
 }
 Write-Progress "Done" "Done" -completed
-Write-Host("Total time: " + ([timespan]::fromseconds(((Get-Date) - $StartTime).totalseconds).ToString("hh\:mm\:ss")))
+Write-Host("Total time: " + [DateTime]::FromFileTime($TotalTime).ToString("hh\:mm\:ss"))
