@@ -1074,8 +1074,10 @@ ForEach ($Domain in $Hosts) {
 											}
 
 											# Check for warnings on common DH primes
-											if ($endpoint.details.dhUsesKnownPrimes -ne "0") {
-												$Suggestions += "Replace common DH primes with custom DH primes`n"
+											if ($endpoint.details.dhUsesKnownPrimes) {
+												if ($endpoint.details.dhUsesKnownPrimes -ne "0") {
+													$Suggestions += "Replace common DH primes with custom DH primes`n"
+												}
 											}
 											if ($endpoint.details.dhYsReuse -eq "true") {
 												$Suggestions += "Replace DH public server primes with custom primes`n"
