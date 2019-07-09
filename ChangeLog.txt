@@ -1,3 +1,13 @@
+v20190709:
+* Added check for preferred curve (named groups)
+* Added analysis of X-Frame-Options header
+* Added analysis of X-Permitted-Cross-Domain-Policies header
+* Fixed analysis of website content when a 404 is returned
+* Fixed DNS lookup so it can return multiple PTR records
+* Added caching of RIPE prefix for IPv6 addresses
+* Added caching of reverse-DNS for IPv6 addresses
+* Added X-Robots-Tag to list of known good headers
+
 v20190509:
 * Added X-Backend-Server to list of known bad headers
 * Improved error handling
