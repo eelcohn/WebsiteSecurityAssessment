@@ -6,6 +6,7 @@ v20190709:
 * Fixed DNS lookup so it can return multiple PTR records
 * Added caching of RIPE prefix for IPv6 addresses
 * Added caching of reverse-DNS for IPv6 addresses
+* Added option for user to specify a custom DNS server for (reverse) DNS query's
 * Added X-Robots-Tag to list of known good headers
 
 v20190509:
