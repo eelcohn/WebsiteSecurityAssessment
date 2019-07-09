@@ -25,7 +25,7 @@ $UseCommonPrefixes			= $True
 # -----------------------------------------------------------------------------
 # Global system variables
 # -----------------------------------------------------------------------------
-$WSAVersion				= "v20190708"
+$WSAVersion				= "v20190709"
 $CommonPrefixes				= @("www")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl			= "https://securityheaders.com/"
@@ -82,6 +82,7 @@ $GoodHTTPHeaders = @(
 	"X-Download-Options",
 	"X-Frame-Options",
 	"X-Permitted-Cross-Domain-Policies",
+	"X-Robots-Tag",
 	"X-XSS-Protection")
 $BadHTTPHeaders = @(
 	"MicrosoftSharePointTeamServices",
