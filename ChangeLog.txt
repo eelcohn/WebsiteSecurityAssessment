@@ -1,3 +1,6 @@
+v20190813:
+* Added X-OWA-Version header to list of known bad headers
+
 v20190709:
 * Added check for preferred curve (named groups)
 * Added analysis of X-Frame-Options header
