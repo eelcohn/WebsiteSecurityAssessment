@@ -1,3 +1,6 @@
+v20191203:
+* Fixed wait period when SSLLabs site is down
+
 v20190813:
 * Added X-OWA-Version header to list of known bad headers
 
