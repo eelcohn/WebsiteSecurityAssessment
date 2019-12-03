@@ -747,7 +747,7 @@ function initiateScans() {
 			} else {
 				if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 					Write-Host ("[" + $i + "/" + $TotalHosts + "] https://" + $CurrentHost + " - SSLLabs: site is temporarily down, retrying...")
-					$wait = 15
+					$wait = 5
 				} else {
 					showError('initiateScans(): Invoke-WebRequest returned an error while processing ' + $site, $_)
 				}
@@ -961,6 +961,7 @@ ForEach ($Domain in $Hosts) {
 						} catch [System.Net.Webexception] {
 							if ($_.CategoryInfo.Category -eq "InvalidOperation") {
 								Write-Host ("[" + $i + "/" + $TotalHosts + "] https://" + $CurrentHost + " - SSLLabs: site is temporarily down, retrying...")
+								Start-Sleep -s 5
 							} else {
 								showError('main(): Invoke-WebRequest returned an error while processing ' + $CurrentHost, $_)
 							}
