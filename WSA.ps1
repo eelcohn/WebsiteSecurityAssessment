@@ -25,7 +25,7 @@ $UseCommonPrefixes			= $True
 # -----------------------------------------------------------------------------
 # Global system variables
 # -----------------------------------------------------------------------------
-$WSAVersion				= "v20190813"
+$WSAVersion				= "v20191203"
 $CommonPrefixes				= @("www")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl			= "https://securityheaders.com/"
