@@ -1,3 +1,6 @@
+v20200316:
+* Added -SkipCertificateCheck to loadWebsite(), analyzeWebsite() and analyzeHTTPMethods()
+
 v20191203:
 * Fixed wait period when SSLLabs site is down
 
