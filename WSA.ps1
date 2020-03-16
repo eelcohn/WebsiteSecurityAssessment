@@ -3,7 +3,7 @@
 # the SSLLabs, SecurityHeaders.io and Mozilla SSL Observatory API's to
 # automatically retrieve the grading for a list of websites.
 #
-# Written by Eelco Huininga 2017-2019
+# Written by Eelco Huininga 2017-2020
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
@@ -25,7 +25,7 @@ $UseCommonPrefixes			= $True
 # -----------------------------------------------------------------------------
 # Global system variables
 # -----------------------------------------------------------------------------
-$WSAVersion				= "v20191203"
+$WSAVersion				= "v20200316"
 $CommonPrefixes				= @("www")
 $SSLLabsAPIUrl				= "https://api.ssllabs.com/api/v3/analyze"
 $SecurityHeadersAPIUrl			= "https://securityheaders.com/"
@@ -495,6 +495,7 @@ function loadWebsite($site) {
 			-MaximumRedirection 0 `
 			-ErrorAction Ignore `
 			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
+			-SkipCertificateCheck `
 			-Uri $site `
 			-TimeoutSec $TimeOut
 # SkipCertificateCheck is only available on PowerShell 6.0.0 and above
@@ -522,6 +523,7 @@ function analyzeWebsite($site) {
 			-MaximumRedirection 0 `
 			-ErrorAction Ignore `
 			-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
+			-SkipCertificateCheck `
 			-Uri $site `
 			-TimeoutSec $TimeOut
 # SkipCertificateCheck is only available on PowerShell 6.0.0 and above
@@ -709,6 +711,7 @@ function analyzeHTTPMethods($site) {
 				-MaximumRedirection 0 `
 				-ErrorAction Ignore `
 				-Headers @{"X-Client"="WebsiteSecurityAssessment " + $WSAversion} `
+				-SkipCertificateCheck `
 				-Uri $site `
 				-Method $BadMethod `
 				-TimeoutSec $TimeOut
